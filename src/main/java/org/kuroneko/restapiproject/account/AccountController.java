@@ -13,10 +13,9 @@ import org.springframework.web.bind.WebDataBinder;
 import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
-import java.security.Principal;
 
 @RestController
-@RequestMapping("/accounts")
+@RequestMapping(value = "/accounts", produces = "application/hal+json;charset=UTF-8")
 public class AccountController {
 
     @Autowired
