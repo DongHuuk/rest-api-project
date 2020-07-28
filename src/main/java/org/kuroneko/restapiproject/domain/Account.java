@@ -26,6 +26,8 @@ public class Account {
 
     private LocalDateTime createTime;
 
+    private LocalDateTime updateTime;
+
     @Enumerated(EnumType.STRING)
     private UserAuthority authority;
 

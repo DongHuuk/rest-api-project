@@ -11,6 +11,7 @@ import javax.validation.constraints.Pattern;
 @Data
 public class AccountForm {
 
+    @Column(unique = true)
     @NotEmpty
     @Pattern(regexp = "^[ㄱ-ㅎ가-힣a-zA-Z0-9]{2,10}$", message = "can't be used characters yours. Please check your username.")
     private String username;

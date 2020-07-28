@@ -13,6 +13,7 @@ import org.springframework.web.bind.WebDataBinder;
 import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
+import java.util.Optional;
 
 @RestController
 @RequestMapping(value = "/accounts", produces = "application/hal+json;charset=UTF-8")
@@ -24,6 +25,8 @@ public class AccountController {
     private AccountService accountService;
     @Autowired
     private AccountValidation accountValidation;
+    @Autowired
+    private AccountRepository accountRepository;
 
     @InitBinder
     public void checkingAccountForm(WebDataBinder webDataBinder){
@@ -37,11 +40,36 @@ public class AccountController {
             return ResponseEntity.badRequest().body(new ErrorsResource(errors));
         }
 
+        errors = accountService.checkAccountEmail(accountForm, errors);
+
+        if (errors.hasErrors()) {
+            return ResponseEntity.badRequest().body(new ErrorsResource(errors));
+        }
+
         Account account = accountService.createNewAccount(modelMapper.map(accountForm, Account.class));
         WebMvcLinkBuilder selfLink = WebMvcLinkBuilder.linkTo(AccountController.class).slash(account.getId());
         AccountResource accountResource = new AccountResource(account);
 
         return ResponseEntity.created(selfLink.toUri()).body(accountResource);
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity updateAccount(@RequestBody @Valid AccountForm accountForm, Errors errors, @PathVariable("id") String accountId) {
+        if (errors.hasErrors()) {
+            return ResponseEntity.badRequest().body(errors);
+        }
+        Optional<Account> accountById = accountRepository.findById(Long.parseLong(accountId));
+
+        if (accountById.isEmpty()) {
+            errors.rejectValue("id", "wrong.id", "not find id");
+            return ResponseEntity.badRequest().body(errors);
+        }
+        Account account = accountById.get();
+        modelMapper.map(accountForm, account);
+
+        Account newAccount = accountService.updateAccount(account);
+
+        return ResponseEntity.ok(newAccount);
     }
 
 }
