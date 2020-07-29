@@ -6,6 +6,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.shadow.com.univocity.parsers.annotations.Headers;
 import org.kuroneko.restapiproject.RestDocsConfiguration;
 import org.kuroneko.restapiproject.domain.Account;
 import org.kuroneko.restapiproject.domain.AccountForm;
@@ -21,12 +22,12 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.web.bind.annotation.RequestHeader;
 
 import java.time.LocalDateTime;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.springframework.restdocs.headers.HeaderDocumentation.headerWithName;
-import static org.springframework.restdocs.headers.HeaderDocumentation.requestHeaders;
+import static org.springframework.restdocs.headers.HeaderDocumentation.*;
 import static org.springframework.restdocs.hypermedia.HypermediaDocumentation.linkWithRel;
 import static org.springframework.restdocs.hypermedia.HypermediaDocumentation.links;
 import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.document;
@@ -56,7 +57,7 @@ class AccountControllerTest {
         accountForm.setEmail("Test@email.com");
         accountForm.setPassword("12341234");
         accountForm.setCheckingPassword("12341234");
-        accountForm.setUsername("흑우냥이");
+        accountForm.setUsername("테스트1");
         return accountForm;
     }
 
@@ -82,6 +83,7 @@ class AccountControllerTest {
                 .content(objectMapper.writeValueAsString(createAccountForm())))
                 .andDo(print())
                 .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.id").exists())
                 .andDo(document("create-Account",
                     links(
                             linkWithRel("self").description("생성한 Account 개인 설정화면으로 이동 할 수 있는 Link")
@@ -96,11 +98,16 @@ class AccountControllerTest {
                             fieldWithPath("password").description("생성할 계정의 비밀번호 8-12자, 문자 규칙은 없다."),
                             fieldWithPath("checkingPassword").description("생성할 계정의 비밀번호를 확인 할 비밀번호.")
                     ),
+                    responseHeaders(
+                            headerWithName(HttpHeaders.LOCATION).description("생성한 계정을 Profile 화면으로 갈 수 있는 링크"),
+                            headerWithName(HttpHeaders.CONTENT_TYPE).description("현 REST API가 지원하고 있는 ContentType")
+                    ),
                     relaxedResponseFields(
                             fieldWithPath("id").description("계정의 identification"),
                             fieldWithPath("username").description("계정의 닉네임"),
                             fieldWithPath("email").description("계정의 아이디(로그인에 사용)"),
                             fieldWithPath("createTime").description("계정의 생성 일자"),
+                            fieldWithPath("updateTime").description("계정의 갱신 일자"),
                             fieldWithPath("authority").description("계정의 접근 권한"),
                             fieldWithPath("article").description("계정이 작성한 게시글 목록들"),
                             fieldWithPath("comments").description("계정이 작성한 댓글 목록들"),
@@ -136,8 +143,7 @@ class AccountControllerTest {
                 .content(objectMapper.writeValueAsString(accountForm)))
                 .andDo(print())
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.errors").exists())
-                .andDo(document("create-Account-Errors"));
+                .andExpect(jsonPath("$.errors").exists());
     }
 
     @Test
@@ -170,8 +176,7 @@ class AccountControllerTest {
                 .content(objectMapper.writeValueAsString(accountForm)))
                 .andDo(print())
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.errors").exists())
-                .andDo(document("create-Account-Errors"));
+                .andExpect(jsonPath("$.errors").exists());
     }
 
     @Test
@@ -187,7 +192,84 @@ class AccountControllerTest {
                 .content(objectMapper.writeValueAsString(accountForm)))
                 .andDo(print())
                 .andExpect(status().isOk())
-                .andDo(document("update-Account"));
+                .andExpect(jsonPath("$.id").exists())
+                .andDo(document("update-Account",
+                        links(
+                                linkWithRel("self").description("자기 Profile을 볼 수 있는 화면으로 이동")
+                        ),
+                        requestHeaders(
+                                headerWithName(HttpHeaders.CONTENT_TYPE).description("이 API에서는 JSON을 지원한다."),
+                                headerWithName(HttpHeaders.ACCEPT).description("이 API에서는 HAL을 지원한다.")
+                        ),
+                        relaxedResponseFields(
+                                fieldWithPath("username").description("닉네임"),
+                                fieldWithPath("email").description("이메일")
+                        ),
+                        responseHeaders(
+                                headerWithName(HttpHeaders.CONTENT_TYPE).description("이 API에서는 JSON과 HAL을 지원한다.")
+                        ),
+                        relaxedResponseFields(
+                                fieldWithPath("id").description("계정의 identification"),
+                                fieldWithPath("username").description("계정의 닉네임"),
+                                fieldWithPath("email").description("계정의 아이디(로그인에 사용)"),
+                                fieldWithPath("createTime").description("계정의 생성 일자"),
+                                fieldWithPath("updateTime").description("계정의 갱신 일자"),
+                                fieldWithPath("authority").description("계정의 접근 권한"),
+                                fieldWithPath("article").description("계정이 작성한 게시글 목록들"),
+                                fieldWithPath("comments").description("계정이 작성한 댓글 목록들"),
+                                fieldWithPath("notification").description("계정의 알림들"),
+                                fieldWithPath("_links.self.href").description("생성한 Account 개인 설정화면으로 이동 할 수 있는 Link")
+                        )
+                ));
+    }
+
+    @Test
+    @DisplayName("Account 갱신 실패_400 error(Validator_duplicate_username)")
+    public void updateAccount_error_validator_duplicate_username() throws Exception {
+        AccountForm accountForm_1 = createAccountForm();
+        saveAccount(accountForm_1);
+        AccountForm accountForm_2 = createAccountForm();
+        accountForm_2.setUsername("테스트2");
+        accountForm_2.setEmail("test2@gmail.com");
+        Account account_2 = saveAccount(accountForm_2);
+        accountForm_2.setUsername("테스트1");
+
+        this.mockMvc.perform(put("/accounts/" + account_2.getId())
+                .contentType(MediaType.APPLICATION_JSON)
+                .accept(MediaTypes.HAL_JSON)
+                .content(objectMapper.writeValueAsString(accountForm_2)))
+                .andDo(print())
+                .andExpect(jsonPath("$.errors").exists());
+    }
+
+    @Test
+    @DisplayName("Account 갱신 실패_400 error(Validator_password)")
+    public void updateAccount_error_validator_password() throws Exception {
+        AccountForm accountForm = createAccountForm();
+        Account account = saveAccount(accountForm);
+        accountForm.setCheckingPassword("123456999");
+
+        this.mockMvc.perform(put("/accounts/" + account.getId())
+                .contentType(MediaType.APPLICATION_JSON)
+                .accept(MediaTypes.HAL_JSON)
+                .content(objectMapper.writeValueAsString(accountForm)))
+                .andDo(print())
+                .andExpect(jsonPath("$.errors").exists());
+    }
+
+    @Test
+    @DisplayName("Account 갱신 실패_400 error(notFoundId)")
+    public void updateAccount_error_notFoundId() throws Exception {
+        AccountForm accountForm = createAccountForm();
+        saveAccount(accountForm);
+        accountForm.setUsername("테스트2");
+
+        this.mockMvc.perform(put("/accounts/231829")
+                .contentType(MediaType.APPLICATION_JSON)
+                .accept(MediaTypes.HAL_JSON)
+                .content(objectMapper.writeValueAsString(accountForm)))
+                .andDo(print())
+                .andExpect(status().isNotFound());
     }
 
 }

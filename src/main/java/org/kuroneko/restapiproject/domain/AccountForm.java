@@ -1,6 +1,8 @@
 package org.kuroneko.restapiproject.domain;
 
+import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 import org.hibernate.validator.constraints.Length;
 
 import javax.persistence.Column;
@@ -8,7 +10,7 @@ import javax.validation.constraints.Email;
 import javax.validation.constraints.NotEmpty;
 import javax.validation.constraints.Pattern;
 
-@Data
+@Data @NoArgsConstructor @AllArgsConstructor
 public class AccountForm {
 
     @Column(unique = true)

@@ -37,13 +37,13 @@ public class AccountController {
     @PostMapping
     public ResponseEntity createAccount(@RequestBody @Valid AccountForm accountForm, Errors errors){
         if (errors.hasErrors()) {
-            return ResponseEntity.badRequest().body(new ErrorsResource(errors));
+            return badRequest(errors);
         }
 
-        errors = accountService.checkAccountEmail(accountForm, errors);
+        errors = accountService.checkAccountEmailAndUsername(accountForm, errors);
 
         if (errors.hasErrors()) {
-            return ResponseEntity.badRequest().body(new ErrorsResource(errors));
+            return badRequest(errors);
         }
 
         Account account = accountService.createNewAccount(modelMapper.map(accountForm, Account.class));
@@ -54,22 +54,33 @@ public class AccountController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity updateAccount(@RequestBody @Valid AccountForm accountForm, Errors errors, @PathVariable("id") String accountId) {
+    public ResponseEntity updateAccount(@PathVariable Long id, @RequestBody @Valid AccountForm accountForm, Errors errors) {
         if (errors.hasErrors()) {
-            return ResponseEntity.badRequest().body(errors);
+            return badRequest(errors);
         }
-        Optional<Account> accountById = accountRepository.findById(Long.parseLong(accountId));
+        Optional<Account> accountById = accountRepository.findById(id);
 
         if (accountById.isEmpty()) {
-            errors.rejectValue("id", "wrong.id", "not find id");
-            return ResponseEntity.badRequest().body(errors);
+            return ResponseEntity.notFound().build();
         }
         Account account = accountById.get();
+
+        errors = accountService.checkUpdateAccount(accountForm, errors, account);
+
+        if (errors.hasErrors()) {
+            return badRequest(errors);
+        }
+
         modelMapper.map(accountForm, account);
 
         Account newAccount = accountService.updateAccount(account);
+        AccountResource accountResource = new AccountResource(newAccount);
 
-        return ResponseEntity.ok(newAccount);
+        return ResponseEntity.ok(accountResource);
+    }
+
+    private ResponseEntity<ErrorsResource> badRequest(Errors errors) {
+        return ResponseEntity.badRequest().body(new ErrorsResource(errors));
     }
 
 }
