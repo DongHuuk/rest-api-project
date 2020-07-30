@@ -63,4 +63,8 @@ public class AccountService {
         account.setUpdateTime(LocalDateTime.now());
         return accountRepository.save(account);
     }
+
+    public void deleteAccount(Account account) {
+        this.accountRepository.delete(account);
+    }
 }

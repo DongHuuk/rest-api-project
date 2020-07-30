@@ -201,9 +201,11 @@ class AccountControllerTest {
                                 headerWithName(HttpHeaders.CONTENT_TYPE).description("이 API에서는 JSON을 지원한다."),
                                 headerWithName(HttpHeaders.ACCEPT).description("이 API에서는 HAL을 지원한다.")
                         ),
-                        relaxedResponseFields(
+                        requestFields(
                                 fieldWithPath("username").description("닉네임"),
-                                fieldWithPath("email").description("이메일")
+                                fieldWithPath("email").description("이메일"),
+                                fieldWithPath("password").description("생성할 계정의 비밀번호 8-12자, 문자 규칙은 없다."),
+                                fieldWithPath("checkingPassword").description("생성할 계정의 비밀번호를 확인 할 비밀번호.")
                         ),
                         responseHeaders(
                                 headerWithName(HttpHeaders.CONTENT_TYPE).description("이 API에서는 JSON과 HAL을 지원한다.")
@@ -258,7 +260,7 @@ class AccountControllerTest {
     }
 
     @Test
-    @DisplayName("Account 갱신 실패_400 error(notFoundId)")
+    @DisplayName("Account 갱신 실패_404 error(notFound)")
     public void updateAccount_error_notFoundId() throws Exception {
         AccountForm accountForm = createAccountForm();
         saveAccount(accountForm);
@@ -268,6 +270,67 @@ class AccountControllerTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .accept(MediaTypes.HAL_JSON)
                 .content(objectMapper.writeValueAsString(accountForm)))
+                .andDo(print())
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    @DisplayName("Account 삭제 성공")
+    public void deleteAccount() throws Exception{
+        AccountForm accountForm = createAccountForm();
+        Account account = saveAccount(accountForm);
+
+        this.mockMvc.perform(delete("/accounts/" + account.getId())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(accountForm)))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andDo(document("delete-Account",
+                        links(
+                                linkWithRel("index").description("메인 화면으로 이동")
+                        ),
+                        requestHeaders(
+                                headerWithName(HttpHeaders.CONTENT_TYPE).description("이 API에서는 JSON을 지원한다.")
+                        ),
+                        requestFields(
+                                fieldWithPath("username").description("닉네임"),
+                                fieldWithPath("email").description("이메일"),
+                                fieldWithPath("password").description("생성할 계정의 비밀번호 8-12자, 문자 규칙은 없다."),
+                                fieldWithPath("checkingPassword").description("생성할 계정의 비밀번호를 확인 할 비밀번호.")
+                        ),
+                        responseHeaders(
+                                headerWithName(HttpHeaders.CONTENT_TYPE).description("이 API에서는 JSON과 HAL을 지원한다.")
+                        ),
+                        responseFields(
+                                fieldWithPath("_links.index.href").description("계정 삭제 후 메인 화면으로 이동한다.")
+                        )
+                ));
+    }
+
+    @Test
+    @DisplayName("Account 삭제 실패_400 error(validator password)")
+    public void deleteAccount_error_validator_password() throws Exception {
+        AccountForm accountForm = createAccountForm();
+        Account account = saveAccount(accountForm);
+        accountForm.setCheckingPassword("12345678900");
+
+        this.mockMvc.perform(delete("/accounts/" + account.getId())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(this.objectMapper.writeValueAsString((accountForm))))
+                .andDo(print())
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors").exists());
+    }
+
+    @Test
+    @DisplayName("Account 삭제 실패_404 error(notFound)")
+    public void deleteAccount_error_notFoundId() throws Exception {
+        AccountForm accountForm = createAccountForm();
+        saveAccount(accountForm);
+
+        this.mockMvc.perform(delete("/accounts/123155123")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(this.objectMapper.writeValueAsString((accountForm))))
                 .andDo(print())
                 .andExpect(status().isNotFound());
     }

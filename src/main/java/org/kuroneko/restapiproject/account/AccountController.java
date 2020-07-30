@@ -4,8 +4,10 @@ import org.kuroneko.restapiproject.account.validation.AccountValidation;
 import org.kuroneko.restapiproject.domain.Account;
 import org.kuroneko.restapiproject.domain.AccountForm;
 import org.kuroneko.restapiproject.errors.ErrorsResource;
+import org.kuroneko.restapiproject.main.MainController;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.hateoas.RepresentationModel;
 import org.springframework.hateoas.server.mvc.WebMvcLinkBuilder;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.Errors;
@@ -14,6 +16,8 @@ import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
 import java.util.Optional;
+
+import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
 
 @RestController
 @RequestMapping(value = "/accounts", produces = "application/hal+json;charset=UTF-8")
@@ -81,6 +85,22 @@ public class AccountController {
 
     private ResponseEntity<ErrorsResource> badRequest(Errors errors) {
         return ResponseEntity.badRequest().body(new ErrorsResource(errors));
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity deleteAccount(@PathVariable("id") Long id, @RequestBody @Valid AccountForm accountForm, Errors errors) {
+        if (errors.hasErrors()) {
+            return this.badRequest(errors);
+        }
+        Optional<Account> byId = this.accountRepository.findById(id);
+
+        if (byId.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+
+        this.accountService.deleteAccount(byId.get());
+
+        return ResponseEntity.ok().body(MainController.getIndexLink());
     }
 
 }
