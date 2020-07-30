@@ -20,10 +20,10 @@ public class ErrorsSerializer extends JsonSerializer<Errors> {
                 jsonGenerator.writeStringField("objectName", e.getObjectName());
                 jsonGenerator.writeStringField("code", e.getCode());
                 jsonGenerator.writeStringField("message", e.getDefaultMessage());
-                Object rejectedValue = e.getRejectedValue();
-                if (rejectedValue != null) {
-                    jsonGenerator.writeStringField("rejectedValue", rejectedValue.toString());
-                }
+//                Object rejectedValue = e.getRejectedValue();
+//                if (rejectedValue != null) {
+//                    jsonGenerator.writeStringField("rejectedValue", rejectedValue.toString());
+//                }
                 jsonGenerator.writeEndObject();
             } catch (IOException ioException) {
                 //TODO Errors Serialize 처리 할 때 에러 페이지 따로 마련 (field)

@@ -5,6 +5,8 @@ import org.springframework.hateoas.RepresentationModel;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.security.Principal;
+
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
 
 @RestController
@@ -22,8 +24,10 @@ public class MainController {
         Login, Index, docs Index Controller
         Login = OAuth2 사용
      */
+
+    //TODO Principal를 현재 Account Domain으로 바로 받아올 수 있게 설정 및 인증 서버 OAuth2 설정해야 함.
     @GetMapping("/")
-    public String index() {
+    public String index(Principal principal) {
         return "index";
     }
 

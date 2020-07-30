@@ -15,6 +15,7 @@ import org.springframework.web.bind.WebDataBinder;
 import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
+import java.security.Principal;
 import java.util.Optional;
 
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
@@ -55,6 +56,14 @@ public class AccountController {
         AccountResource accountResource = new AccountResource(account);
 
         return ResponseEntity.created(selfLink.toUri()).body(accountResource);
+    }
+
+    //TODO Principal를 현재 Account Domain으로 바로 받아올 수 있게 설정 및 인증 서버 OAuth2 설정해야 함.
+    @GetMapping("/{id}")
+    public ResponseEntity accountProfile(@PathVariable Long id, Principal principal) {
+
+
+        return null;
     }
 
     @PutMapping("/{id}")
@@ -102,5 +111,7 @@ public class AccountController {
 
         return ResponseEntity.ok().body(MainController.getIndexLink());
     }
+
+
 
 }
