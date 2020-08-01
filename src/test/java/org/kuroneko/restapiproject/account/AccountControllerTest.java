@@ -10,10 +10,7 @@ import org.junit.jupiter.params.shadow.com.univocity.parsers.annotations.Headers
 import org.kuroneko.restapiproject.RestDocsConfiguration;
 import org.kuroneko.restapiproject.article.ArticleForm;
 import org.kuroneko.restapiproject.article.ArticleRepository;
-import org.kuroneko.restapiproject.domain.Account;
-import org.kuroneko.restapiproject.domain.AccountForm;
-import org.kuroneko.restapiproject.domain.Article;
-import org.kuroneko.restapiproject.domain.UserAuthority;
+import org.kuroneko.restapiproject.domain.*;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.restdocs.AutoConfigureRestDocs;
@@ -79,18 +76,35 @@ class AccountControllerTest {
         return accountRepository.save(account);
     }
 
-    private ArticleForm createArticleForm(){
+    private ArticleForm createArticleForm(int division){
         ArticleForm articleForm = new ArticleForm();
         articleForm.setTitle("Test title number 1");
         articleForm.setDescription("This is Test Article description");
         articleForm.setSource("source @nullable");
-        articleForm.setDivision(1);
+        articleForm.setDivision(division);
+        return articleForm;
     }
 
-    private Article saveArticle(ArticleForm articleForm) {
+    private Article saveArticle(Account account, ArticleForm articleForm) {
         Article article = modelMapper.map(articleForm, Article.class);
+        article.setCreateTime(LocalDateTime.now());
 
-        return null;
+        switch (articleForm.getDivision()) {
+            case 1:
+                article.setDivision(ArticleThema.HUMOR);
+            case 2:
+                article.setDivision(ArticleThema.CHAT);
+            case 3:
+                article.setDivision(ArticleThema.QUESTION);
+            default:
+                article.setDivision(ArticleThema.CHAT);
+        }
+
+        Article newArticle = articleRepository.save(article);
+        account.getArticle().add(newArticle);
+        accountRepository.save(account);
+
+        return newArticle;
     }
 
     @BeforeEach
@@ -377,8 +391,14 @@ class AccountControllerTest {
     public void findAccountsArticles() throws Exception{
         AccountForm accountForm = createAccountForm();
         Account account = saveAccount(accountForm);
+        ArticleForm articleForm = createArticleForm(1);
+        saveArticle(account, articleForm);
 
         this.mockMvc.perform(get("/accounts/{id}/articles", account.getId()))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").exists())
+                .andExpect(jsonPath("$.article").exists());
     }
 
 }

@@ -31,6 +31,7 @@ public class Article {
     private ArticleThema division;
 
     private LocalDateTime createTime;
+    private LocalDateTime updateTime;
 
     @OneToMany
     private Set<Comments> comments;

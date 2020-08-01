@@ -4,6 +4,7 @@ import lombok.*;
 
 import javax.persistence.*;
 import java.time.LocalDateTime;
+import java.util.HashSet;
 import java.util.Set;
 
 @Entity
@@ -32,12 +33,12 @@ public class Account {
     private UserAuthority authority;
 
     @OneToMany
-    private Set<Article> article;
+    private Set<Article> article = new HashSet<>();
 
     @OneToMany
-    private Set<Comments> comments;
+    private Set<Comments> comments = new HashSet<>();
 
     @OneToMany
-    private Set<Notification> notification;
+    private Set<Notification> notification = new HashSet<>();
 
 }
