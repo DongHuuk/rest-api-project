@@ -18,6 +18,7 @@ public class Article {
     @GeneratedValue
     private Long id;
 
+    @GeneratedValue
     private int number;
 
     private String title;

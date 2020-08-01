@@ -8,8 +8,11 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.shadow.com.univocity.parsers.annotations.Headers;
 import org.kuroneko.restapiproject.RestDocsConfiguration;
+import org.kuroneko.restapiproject.article.ArticleForm;
+import org.kuroneko.restapiproject.article.ArticleRepository;
 import org.kuroneko.restapiproject.domain.Account;
 import org.kuroneko.restapiproject.domain.AccountForm;
+import org.kuroneko.restapiproject.domain.Article;
 import org.kuroneko.restapiproject.domain.UserAuthority;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -55,6 +58,8 @@ class AccountControllerTest {
     private ModelMapper modelMapper;
     @Autowired
     private PasswordEncoder passwordEncoder;
+    @Autowired
+    private ArticleRepository articleRepository;
 
     private AccountForm createAccountForm(){
         AccountForm accountForm = new AccountForm();
@@ -74,9 +79,24 @@ class AccountControllerTest {
         return accountRepository.save(account);
     }
 
+    private ArticleForm createArticleForm(){
+        ArticleForm articleForm = new ArticleForm();
+        articleForm.setTitle("Test title number 1");
+        articleForm.setDescription("This is Test Article description");
+        articleForm.setSource("source @nullable");
+        articleForm.setDivision(1);
+    }
+
+    private Article saveArticle(ArticleForm articleForm) {
+        Article article = modelMapper.map(articleForm, Article.class);
+
+        return null;
+    }
+
     @BeforeEach
     private void deleteAccountRepository(){
         this.accountRepository.deleteAll();
+        this.articleRepository.deleteAll();
     }
 
     @Test
@@ -350,6 +370,15 @@ class AccountControllerTest {
                 .with(csrf()))
                 .andDo(print())
                 .andExpect(status().isNotFound());
+    }
+
+    @Test
+    @DisplayName("Account의 articles를 조회 성공")
+    public void findAccountsArticles() throws Exception{
+        AccountForm accountForm = createAccountForm();
+        Account account = saveAccount(accountForm);
+
+        this.mockMvc.perform(get("/accounts/{id}/articles", account.getId()))
     }
 
 }

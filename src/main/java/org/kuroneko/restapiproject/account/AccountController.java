@@ -7,7 +7,6 @@ import org.kuroneko.restapiproject.errors.ErrorsResource;
 import org.kuroneko.restapiproject.main.MainController;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.hateoas.RepresentationModel;
 import org.springframework.hateoas.server.mvc.WebMvcLinkBuilder;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.Errors;
@@ -15,15 +14,12 @@ import org.springframework.web.bind.WebDataBinder;
 import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
-import java.security.Principal;
 import java.util.Optional;
-
-import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
 
 @RestController
 @RequestMapping(value = "/accounts", produces = "application/hal+json;charset=UTF-8")
 public class AccountController {
-
+    //TODO 매핑 객체 미완성으로 인해 link는 self만 추가하였음. 메서드가 완성 되었다면 추가적으로 입력해야 할
     @Autowired
     private ModelMapper modelMapper;
     @Autowired
@@ -58,9 +54,8 @@ public class AccountController {
         return ResponseEntity.created(selfLink.toUri()).body(accountResource);
     }
 
-    //TODO Principal를 현재 Account Domain으로 바로 받아올 수 있게 설정 및 인증 서버 OAuth2 설정해야 함.
     @GetMapping("/{id}")
-    public ResponseEntity accountProfile(@PathVariable Long id, Principal principal) {
+    public ResponseEntity accountProfile(@PathVariable Long id, @CurrentAccount Account account) {
 
 
         return null;
@@ -112,6 +107,17 @@ public class AccountController {
         return ResponseEntity.ok().body(MainController.getIndexLink());
     }
 
+    //게시글 리턴
+    @GetMapping("/{id}/articles")
+    public ResponseEntity findAccountsArticles(@CurrentAccount Account account, @PathVariable("id") Long id) {
+        if (account == null) {
+            return ResponseEntity.notFound().build();
+        }
 
+        Account accountWithArticles = accountRepository.findAccountWithArticleById(id);
+
+        AccountResource accountResource = new AccountResource(accountWithArticles);
+        return ResponseEntity.ok(accountResource);
+    }
 
 }
