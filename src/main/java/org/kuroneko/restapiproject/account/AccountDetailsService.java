@@ -15,7 +15,6 @@ public class AccountDetailsService implements UserDetailsService {
     private AccountRepository accountRepository;
 
     @Override
-
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
         Optional<Account> byEmail = this.accountRepository.findByEmail(email);
 

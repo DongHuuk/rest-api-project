@@ -1,5 +1,6 @@
 package org.kuroneko.restapiproject.domain;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.*;
 
 import javax.persistence.*;
@@ -13,6 +14,7 @@ import java.util.Set;
 @EqualsAndHashCode(of = "id")
 @AllArgsConstructor
 @NoArgsConstructor
+@JsonIgnoreProperties("password")
 public class Account {
 
     @Id

@@ -2,6 +2,7 @@ package org.kuroneko.restapiproject.account;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -10,6 +11,8 @@ import org.junit.jupiter.params.shadow.com.univocity.parsers.annotations.Headers
 import org.kuroneko.restapiproject.RestDocsConfiguration;
 import org.kuroneko.restapiproject.article.ArticleForm;
 import org.kuroneko.restapiproject.article.ArticleRepository;
+import org.kuroneko.restapiproject.config.WithAccount;
+import org.kuroneko.restapiproject.config.WithAccountSecurityContextFactory;
 import org.kuroneko.restapiproject.domain.*;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,11 +24,17 @@ import org.springframework.hateoas.MediaTypes;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.test.context.support.WithAnonymousUser;
+import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.security.test.context.support.WithSecurityContext;
+import org.springframework.security.test.context.support.WithUserDetails;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.RequestHeader;
 
 import java.time.LocalDateTime;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.springframework.restdocs.headers.HeaderDocumentation.*;
@@ -38,11 +47,12 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@ExtendWith(SpringExtension.class )
+@Slf4j
+@ExtendWith(SpringExtension.class)
 @SpringBootTest
 @AutoConfigureMockMvc
 @AutoConfigureRestDocs
-@Import(RestDocsConfiguration.class)
+@Import({RestDocsConfiguration.class})
 class AccountControllerTest {
 
     @Autowired
@@ -57,6 +67,8 @@ class AccountControllerTest {
     private PasswordEncoder passwordEncoder;
     @Autowired
     private ArticleRepository articleRepository;
+    @Autowired
+    private AccountDetailsService accountDetailsService;
 
     private AccountForm createAccountForm(){
         AccountForm accountForm = new AccountForm();
@@ -107,11 +119,11 @@ class AccountControllerTest {
         return newArticle;
     }
 
-    @BeforeEach
-    private void deleteAccountRepository(){
-        this.accountRepository.deleteAll();
-        this.articleRepository.deleteAll();
-    }
+//    @BeforeEach
+//    private void deleteAccountRepository(){
+//        this.accountRepository.deleteAll();
+//        this.articleRepository.deleteAll();
+//    }
 
     @Test
     @DisplayName("Account 생성 - 201")
@@ -388,9 +400,10 @@ class AccountControllerTest {
 
     @Test
     @DisplayName("Account의 articles를 조회 성공")
+    @WithAccount("test@naver.com")
+    @Transactional
     public void findAccountsArticles() throws Exception{
-        AccountForm accountForm = createAccountForm();
-        Account account = saveAccount(accountForm);
+        Account account = this.accountRepository.findByEmail("test@naver.com").orElseThrow();
         ArticleForm articleForm = createArticleForm(1);
         saveArticle(account, articleForm);
 
