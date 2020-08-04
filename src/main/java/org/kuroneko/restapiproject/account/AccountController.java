@@ -113,6 +113,9 @@ public class AccountController {
         if (account == null) {
             return ResponseEntity.notFound().build();
         }
+        if (!account.getId().equals(id)) {
+            return ResponseEntity.badRequest().build();
+        }
 
         Account accountWithArticles = accountRepository.findAccountWithArticleById(id);
 
