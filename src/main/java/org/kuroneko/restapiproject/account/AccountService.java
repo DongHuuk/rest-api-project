@@ -1,15 +1,16 @@
 package org.kuroneko.restapiproject.account;
 
+import org.kuroneko.restapiproject.article.ArticleRepository;
 import org.kuroneko.restapiproject.domain.Account;
 import org.kuroneko.restapiproject.domain.AccountForm;
+import org.kuroneko.restapiproject.domain.Article;
 import org.kuroneko.restapiproject.domain.UserAuthority;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.Errors;
 
-import javax.validation.constraints.NotEmpty;
-import javax.validation.constraints.Pattern;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -17,12 +18,15 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
+@Transactional
 public class AccountService {
 
     @Autowired
     private AccountRepository accountRepository;
     @Autowired
     private PasswordEncoder passwordEncoder;
+    @Autowired
+    private ArticleRepository articleRepository;
 
     public Account createNewAccount(Account account) {
         account.setCreateTime(LocalDateTime.now());
@@ -85,5 +89,23 @@ public class AccountService {
 
     public void deleteAccount(Account account) {
         this.accountRepository.delete(account);
+    }
+
+    public void findArticlesAndDelete(Account accountWithArticles, String checked) {
+        String[] splitStr = checked.split(",");
+
+        for (String str : splitStr) {
+            str = str.trim();
+            Optional<Article> byNumber = this.articleRepository.findByNumber(Long.valueOf(str));
+
+            if (byNumber.isEmpty()) {
+                System.out.println("Error");
+            }
+
+            if (accountWithArticles.getArticle().contains(byNumber.get())) {
+                accountWithArticles.getArticle().remove(byNumber.get());
+                this.articleRepository.delete(byNumber.get());
+            }
+        }
     }
 }

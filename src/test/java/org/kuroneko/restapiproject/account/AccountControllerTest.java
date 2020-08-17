@@ -26,7 +26,9 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
+import javax.swing.plaf.basic.BasicBorders;
 import java.time.LocalDateTime;
+import java.util.List;
 
 import static org.springframework.restdocs.headers.HeaderDocumentation.*;
 import static org.springframework.restdocs.hypermedia.HypermediaDocumentation.linkWithRel;
@@ -36,8 +38,7 @@ import static org.springframework.restdocs.payload.PayloadDocumentation.*;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @Slf4j
 @ExtendWith(SpringExtension.class)
@@ -103,6 +104,7 @@ class AccountControllerTest {
         }
 
         Article newArticle = articleRepository.save(article);
+        newArticle.setNumber(newArticle.getId() + 1);
         account.getArticle().add(newArticle);
         accountRepository.save(account);
 
@@ -439,7 +441,17 @@ class AccountControllerTest {
     @Test
     @DisplayName("Account의 articles를 조회 실패(존재하지 않는 account 조회)")
     @Transactional
+    @WithAccount("test1@test.com")
     public void findAccountsArticles_fail_1() throws Exception {
+        this.mockMvc.perform(get("/accounts/12345/articles"))
+                .andDo(print())
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("Account의 articles를 조회 실패(nonPrincipal)")
+    @Transactional
+    public void findAccountsArticles_fail_principal() throws Exception {
         this.mockMvc.perform(get("/accounts/12345/articles"))
                 .andDo(print())
                 .andExpect(status().isNotFound());
@@ -458,6 +470,139 @@ class AccountControllerTest {
         this.mockMvc.perform(get("/accounts/{id}/articles", account.getId()))
                 .andDo(print())
                 .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("Account의 articles를 삭제 성공")
+    @WithAccount("test@naver.com")
+    @Transactional
+    public void deleteAccountArticles_success() throws Exception {
+        Account account = this.accountRepository.findByEmail("test@naver.com").orElseThrow();
+        ArticleForm articleForm1 = createArticleForm(1);
+        saveArticle(account, articleForm1);
+        ArticleForm articleForm2 = createArticleForm(1);
+        saveArticle(account, articleForm2);
+        ArticleForm articleForm3 = createArticleForm(1);
+        saveArticle(account, articleForm3);
+
+        List<Article> all = articleRepository.findAll();
+        String str = all.get(0).getNumber() + ", " + all.get(2).getNumber();
+
+        this.mockMvc.perform(delete("/accounts/{id}/articles", account.getId())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(str)
+                .with(csrf()))
+                .andDo(print())
+                .andExpect(status().is3xxRedirection())
+                .andExpect(header().exists("Location"))
+                .andDo(document("delete-articles",
+                        links(
+                                linkWithRel("self").description("해당 Account Profile로 이동")
+                        ),
+                        responseHeaders(
+                                headerWithName(HttpHeaders.LOCATION).description("redirect url"),
+                                headerWithName(HttpHeaders.CONTENT_TYPE).description("이 API에서는 JSON-HAL 지원한다.")
+                        ),
+                        relaxedResponseFields(
+                                fieldWithPath("id").type(JsonFieldType.NUMBER).description("계정의 identification"),
+                                fieldWithPath("username").description("계정의 닉네임"),
+                                fieldWithPath("email").description("계정의 아이디(로그인에 사용)"),
+                                fieldWithPath("createTime").description("계정의 생성 일자"),
+                                fieldWithPath("updateTime").description("계정의 갱신 일자"),
+                                fieldWithPath("authority").description("계정의 접근 권한"),
+                                fieldWithPath("article").description("계정이 작성한 게시글 목록들"),
+                                fieldWithPath("comments").description("계정이 작성한 댓글 목록들"),
+                                fieldWithPath("notification").description("계정의 알림들"),
+                                fieldWithPath("_links.self.href").description("생성한 Account 개인 설정화면으로 이동 할 수 있는 Link")
+                        ),
+                        responseFields(beneathPath("article"),
+                                fieldWithPath("id").description("게시글의 identification"),
+                                fieldWithPath("number").description("게시글의 순번"),
+                                fieldWithPath("title").description("게시글의 제목"),
+                                fieldWithPath("description").description("게시글의 내용"),
+                                fieldWithPath("source").description("게시글에 첨부파일 등이 있다면 그에 대한 출처 정보"),
+                                fieldWithPath("division").description("게시글의 글 유형"),
+                                fieldWithPath("createTime").description("게시글이 생성된 시간"),
+                                fieldWithPath("updateTime").description("게시글이 수정된 시간"),
+                                fieldWithPath("comments").description("게시글의 댓글들"),
+                                fieldWithPath("report").description("게시글의 신고 횟수")
+                        )
+                ));
+    }
+
+    @Test
+    @DisplayName("Account의 articles를 삭제 실패(Principal과 Login Account 다름)")
+    @WithAccount("test@naver.com")
+    @Transactional
+    public void deleteAccountArticles_fail_accountMiss() throws Exception {
+        AccountForm accountForm = createAccountForm();
+        Account newAccount = saveAccount(accountForm);
+
+        ArticleForm articleForm1 = createArticleForm(1);
+        saveArticle(newAccount, articleForm1);
+        ArticleForm articleForm2 = createArticleForm(1);
+        saveArticle(newAccount, articleForm2);
+        ArticleForm articleForm3 = createArticleForm(1);
+        saveArticle(newAccount, articleForm3);
+
+        List<Article> all = articleRepository.findAll();
+        String str = all.get(0).getId() + ", " + all.get(2).getId();
+
+        this.mockMvc.perform(delete("/accounts/{id}/articles", newAccount.getId())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(str)
+                .with(csrf()))
+                .andDo(print())
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("Account의 articles를 삭제 실패(이상한 URL 요청)")
+    @WithAccount("test@naver.com")
+    @Transactional
+    public void deleteAccountArticles_fail_unMatch() throws Exception {
+        Account account = accountRepository.findByEmail("test@naver.com").orElseThrow();
+        ArticleForm articleForm1 = createArticleForm(1);
+        saveArticle(account, articleForm1);
+        ArticleForm articleForm2 = createArticleForm(1);
+        saveArticle(account, articleForm2);
+        ArticleForm articleForm3 = createArticleForm(1);
+        saveArticle(account, articleForm3);
+
+        List<Article> all = articleRepository.findAll();
+        String str = all.get(0).getId() + ", " + all.get(2).getId();
+
+        this.mockMvc.perform(delete("/accounts/{id}/articles", 1982739548)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(str)
+                .with(csrf()))
+                .andDo(print())
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("Account의 articles를 삭제 실패(non principal)")
+    @Transactional
+    public void deleteAccountArticles_fail_principal() throws Exception {
+        AccountForm accountForm = createAccountForm();
+        Account account = saveAccount(accountForm);
+
+        ArticleForm articleForm1 = createArticleForm(1);
+        saveArticle(account, articleForm1);
+        ArticleForm articleForm2 = createArticleForm(1);
+        saveArticle(account, articleForm2);
+        ArticleForm articleForm3 = createArticleForm(1);
+        saveArticle(account, articleForm3);
+
+        List<Article> all = articleRepository.findAll();
+        String str = all.get(0).getId() + ", " + all.get(2).getId();
+
+        this.mockMvc.perform(delete("/accounts/{id}/articles", account.getId())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(str)
+                .with(csrf()))
+                .andDo(print())
+                .andExpect(status().isNotFound());
     }
 
 }

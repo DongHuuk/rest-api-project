@@ -8,12 +8,16 @@ import org.kuroneko.restapiproject.main.MainController;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.hateoas.server.mvc.WebMvcLinkBuilder;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.Errors;
 import org.springframework.web.bind.WebDataBinder;
 import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
+import java.net.URI;
+import java.util.Arrays;
 import java.util.Optional;
 
 @RestController
@@ -29,7 +33,7 @@ public class AccountController {
     @Autowired
     private AccountRepository accountRepository;
 
-    @InitBinder
+    @InitBinder("accountForm")
     public void checkingAccountForm(WebDataBinder webDataBinder){
         webDataBinder.addValidators(accountValidation);
     }
@@ -54,6 +58,7 @@ public class AccountController {
         return ResponseEntity.created(selfLink.toUri()).body(accountResource);
     }
 
+    //Account Profile을 보여주며 수정할 수 있는 form 또한 제공이 되어야 한다. (F)
     @GetMapping("/{id}")
     public ResponseEntity accountProfile(@PathVariable Long id, @CurrentAccount Account account) {
 
@@ -122,5 +127,34 @@ public class AccountController {
         AccountResource accountResource = new AccountResource(accountWithArticles);
         return ResponseEntity.ok(accountResource);
     }
+
+    //checked 방식을 어떻게 할것인가. Ajax로 checked된 값을 ","로 구분하여 JSON으로 전송
+    @DeleteMapping("/{id}/articles")
+    public ResponseEntity deleteAccountsArticles(@CurrentAccount Account account, @PathVariable("id") Long id, @RequestBody String checked) {
+        if (account == null) {
+            return ResponseEntity.notFound().build();
+        }
+        if (!account.getId().equals(id)) {
+            return ResponseEntity.badRequest().build();
+        }
+
+        Account accountWithArticles = accountRepository.findAccountWithArticleById(id);
+
+        AccountResource accountResource = new AccountResource(accountWithArticles);
+        //TODO append CreateArticle Link
+        HttpHeaders headers = new HttpHeaders();
+        URI uri = WebMvcLinkBuilder.linkTo(AccountController.class).slash(account.getId() + "/articles").toUri();
+        headers.setLocation(uri);
+
+        if (checked == null) {
+            return new ResponseEntity(headers, HttpStatus.SEE_OTHER);
+        }
+
+        accountService.findArticlesAndDelete(accountWithArticles, checked);
+
+        return new ResponseEntity(accountResource, headers, HttpStatus.SEE_OTHER);
+    }
+
+
 
 }

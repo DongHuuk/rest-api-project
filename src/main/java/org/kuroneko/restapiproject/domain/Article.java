@@ -18,8 +18,8 @@ public class Article {
     @GeneratedValue
     private Long id;
 
-    @GeneratedValue
-    private int number;
+    @Column(unique = true)
+    private Long number;
 
     private String title;
 
