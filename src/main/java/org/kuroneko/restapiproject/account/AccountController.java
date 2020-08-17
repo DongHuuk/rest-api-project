@@ -1,6 +1,7 @@
 package org.kuroneko.restapiproject.account;
 
 import org.kuroneko.restapiproject.account.validation.AccountValidation;
+import org.kuroneko.restapiproject.comments.CommentsRepository;
 import org.kuroneko.restapiproject.domain.Account;
 import org.kuroneko.restapiproject.domain.AccountForm;
 import org.kuroneko.restapiproject.errors.ErrorsResource;
@@ -17,7 +18,6 @@ import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
 import java.net.URI;
-import java.util.Arrays;
 import java.util.Optional;
 
 @RestController
@@ -155,6 +155,47 @@ public class AccountController {
         return new ResponseEntity(accountResource, headers, HttpStatus.SEE_OTHER);
     }
 
+    //댓글들 리턴
+    @GetMapping("/{id}/comments")
+    public ResponseEntity findAccountsComments(@CurrentAccount Account account, @PathVariable("id") Long id) {
+        if (account == null) {
+            return ResponseEntity.notFound().build();
+        }
+        if (!account.getId().equals(id)) {
+            return ResponseEntity.badRequest().build();
+        }
 
+        Account accountWithComments = accountRepository.findAccountWithCommentsById(id);
+
+        AccountResource accountResource = new AccountResource(accountWithComments);
+        return ResponseEntity.ok(accountResource);
+    }
+
+    //checked 방식은 게시글과 동일
+    @DeleteMapping("/{id}/comments")
+    public ResponseEntity deleteAccountsComments(@CurrentAccount Account account, @PathVariable("id") Long id, @RequestBody String checked) {
+        if (account == null) {
+            return ResponseEntity.notFound().build();
+        }
+        if (!account.getId().equals(id)) {
+            return ResponseEntity.badRequest().build();
+        }
+
+        Account accountWithComments = accountRepository.findAccountWithCommentsById(id);
+
+        AccountResource accountResource = new AccountResource(accountWithComments);
+        //TODO append CreateArticle Link
+        HttpHeaders headers = new HttpHeaders();
+        URI uri = WebMvcLinkBuilder.linkTo(AccountController.class).slash(account.getId() + "/comments").toUri();
+        headers.setLocation(uri);
+
+        if (checked == null) {
+            return new ResponseEntity(headers, HttpStatus.SEE_OTHER);
+        }
+
+        accountService.findCommentsAndDelete(accountWithComments, checked);
+
+        return new ResponseEntity(accountResource, headers, HttpStatus.SEE_OTHER);
+    }
 
 }

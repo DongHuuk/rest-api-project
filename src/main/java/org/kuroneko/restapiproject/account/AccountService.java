@@ -1,10 +1,8 @@
 package org.kuroneko.restapiproject.account;
 
 import org.kuroneko.restapiproject.article.ArticleRepository;
-import org.kuroneko.restapiproject.domain.Account;
-import org.kuroneko.restapiproject.domain.AccountForm;
-import org.kuroneko.restapiproject.domain.Article;
-import org.kuroneko.restapiproject.domain.UserAuthority;
+import org.kuroneko.restapiproject.comments.CommentsRepository;
+import org.kuroneko.restapiproject.domain.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -27,6 +25,8 @@ public class AccountService {
     private PasswordEncoder passwordEncoder;
     @Autowired
     private ArticleRepository articleRepository;
+    @Autowired
+    private CommentsRepository commentsRepository;
 
     public Account createNewAccount(Account account) {
         account.setCreateTime(LocalDateTime.now());
@@ -99,12 +99,30 @@ public class AccountService {
             Optional<Article> byNumber = this.articleRepository.findByNumber(Long.valueOf(str));
 
             if (byNumber.isEmpty()) {
-                System.out.println("Error");
+                //TODO Exception 처리
             }
 
             if (accountWithArticles.getArticle().contains(byNumber.get())) {
                 accountWithArticles.getArticle().remove(byNumber.get());
                 this.articleRepository.delete(byNumber.get());
+            }
+        }
+    }
+
+    public void findCommentsAndDelete(Account accountWithComments, String checked) {
+        String[] splitStr = checked.split(",");
+
+        for (String str : splitStr) {
+            str = str.trim();
+            Optional<Comments> byNumber = this.commentsRepository.findByNumber(Long.valueOf(str));
+
+            if (byNumber.isEmpty()) {
+                //TODO Exception 처리
+            }
+
+            if (accountWithComments.getComments().contains(byNumber.get())) {
+                accountWithComments.getComments().remove(byNumber.get());
+                this.commentsRepository.delete(byNumber.get());
             }
         }
     }

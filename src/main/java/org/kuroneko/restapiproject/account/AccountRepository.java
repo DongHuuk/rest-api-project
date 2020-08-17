@@ -14,4 +14,7 @@ public interface AccountRepository extends JpaRepository<Account, Long> {
 
     @EntityGraph(attributePaths = {"article"}, type = EntityGraph.EntityGraphType.LOAD)
     Account findAccountWithArticleById(Long id);
+
+    @EntityGraph(attributePaths = {"comments"}, type = EntityGraph.EntityGraphType.LOAD)
+    Account findAccountWithCommentsById(Long id);
 }
