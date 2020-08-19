@@ -1,17 +1,27 @@
 package org.kuroneko.restapiproject.account;
 
 import org.kuroneko.restapiproject.account.validation.AccountValidation;
-import org.kuroneko.restapiproject.comments.CommentsRepository;
+import org.kuroneko.restapiproject.article.ArticleDTO;
+import org.kuroneko.restapiproject.article.ArticleRepository;
 import org.kuroneko.restapiproject.domain.Account;
 import org.kuroneko.restapiproject.domain.AccountForm;
+import org.kuroneko.restapiproject.domain.Article;
 import org.kuroneko.restapiproject.errors.ErrorsResource;
 import org.kuroneko.restapiproject.main.MainController;
+import org.modelmapper.Converter;
 import org.modelmapper.ModelMapper;
+import org.modelmapper.spi.MappingContext;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.hateoas.server.mvc.WebMvcLinkBuilder;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.ui.Model;
 import org.springframework.validation.Errors;
 import org.springframework.web.bind.WebDataBinder;
 import org.springframework.web.bind.annotation.*;
@@ -19,6 +29,8 @@ import org.springframework.web.bind.annotation.*;
 import javax.validation.Valid;
 import java.net.URI;
 import java.util.Optional;
+
+import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
 
 @RestController
 @RequestMapping(value = "/accounts", produces = "application/hal+json;charset=UTF-8")
@@ -32,6 +44,8 @@ public class AccountController {
     private AccountValidation accountValidation;
     @Autowired
     private AccountRepository accountRepository;
+    @Autowired
+    private ArticleRepository articleRepository;
 
     @InitBinder("accountForm")
     public void checkingAccountForm(WebDataBinder webDataBinder){
@@ -52,7 +66,7 @@ public class AccountController {
         }
 
         Account account = accountService.createNewAccount(modelMapper.map(accountForm, Account.class));
-        WebMvcLinkBuilder selfLink = WebMvcLinkBuilder.linkTo(AccountController.class).slash(account.getId());
+        WebMvcLinkBuilder selfLink = linkTo(AccountController.class).slash(account.getId());
         AccountResource accountResource = new AccountResource(account);
 
         return ResponseEntity.created(selfLink.toUri()).body(accountResource);
@@ -114,18 +128,20 @@ public class AccountController {
 
     //게시글 리턴
     @GetMapping("/{id}/articles")
-    public ResponseEntity findAccountsArticles(@CurrentAccount Account account, @PathVariable("id") Long id) {
+    public ResponseEntity findAccountsArticles(@CurrentAccount Account account, @PathVariable("id") Long id
+                                            ,@PageableDefault(sort = "createTime", direction = Sort.Direction.DESC) Pageable pageable) {
         if (account == null) {
             return ResponseEntity.notFound().build();
         }
         if (!account.getId().equals(id)) {
             return ResponseEntity.badRequest().build();
         }
+        HttpHeaders headers = new HttpHeaders();
+        URI uri = linkTo(AccountController.class).slash(account.getId()).toUri();
+        headers.setLocation(uri);
+        Page<ArticleDTO> articleDTO = accountService.createPageableObject(id, pageable, account);
 
-        Account accountWithArticles = accountRepository.findAccountWithArticleById(id);
-
-        AccountResource accountResource = new AccountResource(accountWithArticles);
-        return ResponseEntity.ok(accountResource);
+        return new ResponseEntity<Object>(articleDTO, headers, HttpStatus.OK);
     }
 
     //checked 방식을 어떻게 할것인가. Ajax로 checked된 값을 ","로 구분하여 JSON으로 전송
@@ -138,21 +154,18 @@ public class AccountController {
             return ResponseEntity.badRequest().build();
         }
 
-        Account accountWithArticles = accountRepository.findAccountWithArticleById(id);
-
-        AccountResource accountResource = new AccountResource(accountWithArticles);
-        //TODO append CreateArticle Link
-        HttpHeaders headers = new HttpHeaders();
-        URI uri = WebMvcLinkBuilder.linkTo(AccountController.class).slash(account.getId() + "/articles").toUri();
-        headers.setLocation(uri);
+        Account accountWithArticle = accountRepository.findAccountWithArticleById(id);
+        AccountResource accountResource = new AccountResource(accountWithArticle);
+        accountResource.add(linkTo(AccountController.class).slash(account.getId() + "/articles").withRel("getArticles"));
+        //TODO append link - create articles
 
         if (checked == null) {
-            return new ResponseEntity(headers, HttpStatus.SEE_OTHER);
+            return new ResponseEntity(accountResource, HttpStatus.SEE_OTHER);
         }
 
-        accountService.findArticlesAndDelete(accountWithArticles, checked);
+        accountService.findArticlesAndDelete(accountWithArticle, checked);
 
-        return new ResponseEntity(accountResource, headers, HttpStatus.SEE_OTHER);
+        return new ResponseEntity(accountResource, HttpStatus.SEE_OTHER);
     }
 
     //댓글들 리턴
@@ -184,9 +197,9 @@ public class AccountController {
         Account accountWithComments = accountRepository.findAccountWithCommentsById(id);
 
         AccountResource accountResource = new AccountResource(accountWithComments);
-        //TODO append CreateArticle Link
+        //TODO append CreateComments Link
         HttpHeaders headers = new HttpHeaders();
-        URI uri = WebMvcLinkBuilder.linkTo(AccountController.class).slash(account.getId() + "/comments").toUri();
+        URI uri = linkTo(AccountController.class).slash(account.getId() + "/comments").toUri();
         headers.setLocation(uri);
 
         if (checked == null) {
@@ -194,6 +207,46 @@ public class AccountController {
         }
 
         accountService.findCommentsAndDelete(accountWithComments, checked);
+
+        return new ResponseEntity(accountResource, headers, HttpStatus.SEE_OTHER);
+    }
+
+    //알림들 리턴
+    @GetMapping("/{id}/notification")
+    public ResponseEntity findAccountsNotifications(@CurrentAccount Account account, @PathVariable("id") Long id, Pageable pageable) {
+        if (account == null) {
+            return ResponseEntity.notFound().build();
+        }
+        if (!account.getId().equals(id)) {
+            return ResponseEntity.badRequest().build();
+        }
+
+        Account accountWithNotification = accountRepository.findAccountWithNotificationById(id);
+        //QueryDSL 적용해서 pageable이랑 특정 account Id에 해당하는 값을 가져와야함
+
+        AccountResource accountResource = new AccountResource(accountWithNotification);
+        return ResponseEntity.ok(accountResource);
+    }
+
+    //notification은 전체삭제만 지원
+    @DeleteMapping("/{id}/notification")
+    public ResponseEntity deleteAccountsNotifications(@CurrentAccount Account account, @PathVariable("id") Long id) {
+        if (account == null) {
+            return ResponseEntity.notFound().build();
+        }
+        if (!account.getId().equals(id)) {
+            return ResponseEntity.badRequest().build();
+        }
+
+        Account accountWithNotification = accountRepository.findAccountWithNotificationById(id);
+
+        AccountResource accountResource = new AccountResource(accountWithNotification);
+        //TODO append CreateNotification Link
+        HttpHeaders headers = new HttpHeaders();
+        URI uri = linkTo(AccountController.class).slash(account.getId() + "/notification").toUri();
+        headers.setLocation(uri);
+
+        accountService.deleteNotifications(accountWithNotification);
 
         return new ResponseEntity(accountResource, headers, HttpStatus.SEE_OTHER);
     }

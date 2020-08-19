@@ -1,9 +1,13 @@
 package org.kuroneko.restapiproject.account;
 
-import org.kuroneko.restapiproject.article.ArticleRepository;
+import org.kuroneko.restapiproject.article.ArticleDTO;
 import org.kuroneko.restapiproject.comments.CommentsRepository;
 import org.kuroneko.restapiproject.domain.*;
+import org.kuroneko.restapiproject.notification.NotificationRepository;
+import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -13,6 +17,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -24,9 +29,13 @@ public class AccountService {
     @Autowired
     private PasswordEncoder passwordEncoder;
     @Autowired
-    private ArticleRepository articleRepository;
+    private org.kuroneko.restapiproject.article.ArticleRepository articleRepository;
     @Autowired
     private CommentsRepository commentsRepository;
+    @Autowired
+    private NotificationRepository notificationRepository;
+    @Autowired
+    private ModelMapper modelMapper;
 
     public Account createNewAccount(Account account) {
         account.setCreateTime(LocalDateTime.now());
@@ -91,24 +100,6 @@ public class AccountService {
         this.accountRepository.delete(account);
     }
 
-    public void findArticlesAndDelete(Account accountWithArticles, String checked) {
-        String[] splitStr = checked.split(",");
-
-        for (String str : splitStr) {
-            str = str.trim();
-            Optional<Article> byNumber = this.articleRepository.findByNumber(Long.valueOf(str));
-
-            if (byNumber.isEmpty()) {
-                //TODO Exception 처리
-            }
-
-            if (accountWithArticles.getArticle().contains(byNumber.get())) {
-                accountWithArticles.getArticle().remove(byNumber.get());
-                this.articleRepository.delete(byNumber.get());
-            }
-        }
-    }
-
     public void findCommentsAndDelete(Account accountWithComments, String checked) {
         String[] splitStr = checked.split(",");
 
@@ -123,6 +114,44 @@ public class AccountService {
             if (accountWithComments.getComments().contains(byNumber.get())) {
                 accountWithComments.getComments().remove(byNumber.get());
                 this.commentsRepository.delete(byNumber.get());
+            }
+        }
+    }
+
+    public void deleteNotifications(Account accountWithNotification) {
+        Set<Notification> notification = accountWithNotification.getNotification();
+        notificationRepository.deleteAll(notification);
+        notification.clear();
+    }
+
+    public Page<ArticleDTO> createPageableObject(Long id, Pageable pageable, Account account) {
+        Page<Article> pageableArticle = articleRepository.findByAccountId(id, pageable);
+        Page<ArticleDTO> articleDTO = pageableArticle.map(article -> {
+            ArticleDTO map = modelMapper.map(article, ArticleDTO.class);
+            map.setAccountId(id);
+            map.setUserName(account.getUsername());
+            map.setUserEmail(account.getEmail());
+            map.setAuthority(account.getAuthority() + "");
+            return map;
+        });
+
+        return articleDTO;
+    }
+
+    public void findArticlesAndDelete(Account accountWithArticles, String checked) {
+        String[] splitStr = checked.split(",");
+
+        for (String str : splitStr) {
+            str = str.trim();
+            Optional<Article> byNumber = this.articleRepository.findByNumber(Long.valueOf(str));
+
+            if (byNumber.isEmpty()) {
+                //TODO Exception 처리
+            }
+
+            if (accountWithArticles.getArticle().contains(byNumber.get())) {
+                accountWithArticles.getArticle().remove(byNumber.get());
+                this.articleRepository.delete(byNumber.get());
             }
         }
     }

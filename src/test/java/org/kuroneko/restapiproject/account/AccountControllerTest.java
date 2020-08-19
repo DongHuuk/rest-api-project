@@ -3,6 +3,7 @@ package org.kuroneko.restapiproject.account;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -13,6 +14,7 @@ import org.kuroneko.restapiproject.comments.CommentsForm;
 import org.kuroneko.restapiproject.comments.CommentsRepository;
 import org.kuroneko.restapiproject.config.WithAccount;
 import org.kuroneko.restapiproject.domain.*;
+import org.kuroneko.restapiproject.notification.NotificationRepository;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.restdocs.AutoConfigureRestDocs;
@@ -31,6 +33,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.springframework.restdocs.headers.HeaderDocumentation.*;
 import static org.springframework.restdocs.hypermedia.HypermediaDocumentation.linkWithRel;
 import static org.springframework.restdocs.hypermedia.HypermediaDocumentation.links;
@@ -63,6 +66,8 @@ class AccountControllerTest {
     private ArticleRepository articleRepository;
     @Autowired
     private CommentsRepository commentsRepository;
+    @Autowired
+    private NotificationRepository notificationRepository;
 
     private AccountForm createAccountForm(){
         AccountForm accountForm = new AccountForm();
@@ -108,9 +113,30 @@ class AccountControllerTest {
 
         Article newArticle = articleRepository.save(article);
         newArticle.setNumber(newArticle.getId() + 1);
-        account.getArticle().add(newArticle);
+        account.setArticle(article);
         accountRepository.save(account);
+        return newArticle;
+    }
 
+    private Article saveArticle(Account account, ArticleForm articleForm, int i) {
+        Article article = modelMapper.map(articleForm, Article.class);
+        article.setCreateTime(LocalDateTime.now().plusHours(i));
+
+        switch (articleForm.getDivision()) {
+            case 1:
+                article.setDivision(ArticleThema.HUMOR);
+            case 2:
+                article.setDivision(ArticleThema.CHAT);
+            case 3:
+                article.setDivision(ArticleThema.QUESTION);
+            default:
+                article.setDivision(ArticleThema.CHAT);
+        }
+
+        Article newArticle = articleRepository.save(article);
+        newArticle.setNumber(newArticle.getId() + 1);
+        account.setArticle(article);
+        accountRepository.save(account);
         return newArticle;
     }
 
@@ -131,11 +157,22 @@ class AccountControllerTest {
         return comments;
     }
 
+    private void saveNotification(Article article, Account account){
+        Notification notification = new Notification();
+        notification.setChecked(false);
+        notification.setArticle(article);
+        notification.setAccount(account);
+        notification.setCreateTime(LocalDateTime.now());
+        notificationRepository.save(notification);
+        account.getNotification().add(notification);
+    }
 
     @AfterEach
-    private void deleteAccountRepository(){
-        this.accountRepository.deleteAll();
+    private void deleteAccountRepository_After(){
         this.articleRepository.deleteAll();
+        this.accountRepository.deleteAll();
+        this.commentsRepository.deleteAll();
+        this.notificationRepository.deleteAll();
     }
 
     @Test
@@ -650,35 +687,21 @@ class AccountControllerTest {
     @Transactional
     public void findAccountsArticles() throws Exception{
         Account account = this.accountRepository.findByEmail("test@naver.com").orElseThrow();
-        ArticleForm articleForm = createArticleForm(1);
-        saveArticle(account, articleForm);
+
+        for(int i = 0; i<50; i++){
+            ArticleForm articleForm = createArticleForm(1);
+            saveArticle(account, articleForm, i);
+        }
 
         this.mockMvc.perform(get("/accounts/{id}/articles", account.getId()))
                 .andDo(print())
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").exists())
-                .andExpect(jsonPath("$.article").exists())
                 .andDo(document("get-Account-Article",
-                        links(
-                                linkWithRel("self").description("해당 Account Profile로 이동")
-                        ),
                         responseHeaders(
-                                headerWithName(HttpHeaders.CONTENT_TYPE).description("이 API에서는 JSON-HAL 지원한다.")
+                                headerWithName(HttpHeaders.CONTENT_TYPE).description("이 API에서는 JSON-HAL 지원한다."),
+                                headerWithName(HttpHeaders.LOCATION).description("이 계정의 프로필 URL")
                         ),
-                        relaxedResponseFields(
-                                fieldWithPath("id").type(JsonFieldType.NUMBER).description("계정의 identification"),
-                                fieldWithPath("username").description("계정의 닉네임"),
-                                fieldWithPath("email").description("계정의 아이디(로그인에 사용)"),
-                                fieldWithPath("createTime").description("계정의 생성 일자"),
-                                fieldWithPath("updateTime").description("계정의 갱신 일자"),
-                                fieldWithPath("authority").description("계정의 접근 권한"),
-                                fieldWithPath("article").description("계정이 작성한 게시글 목록들"),
-                                fieldWithPath("comments").description("계정이 작성한 댓글 목록들"),
-                                fieldWithPath("notification").description("계정의 알림들"),
-                                fieldWithPath("_links.self.href").description("생성한 Account 개인 설정화면으로 이동 할 수 있는 Link")
-                        ),
-                        responseFields(beneathPath("article"),
-                                fieldWithPath("id").description("게시글의 identification"),
+                        responseFields(beneathPath("content"),
                                 fieldWithPath("number").description("게시글의 순번"),
                                 fieldWithPath("title").description("게시글의 제목"),
                                 fieldWithPath("description").description("게시글의 내용"),
@@ -687,7 +710,27 @@ class AccountControllerTest {
                                 fieldWithPath("createTime").description("게시글이 생성된 시간"),
                                 fieldWithPath("updateTime").description("게시글이 수정된 시간"),
                                 fieldWithPath("comments").description("게시글의 댓글들"),
-                                fieldWithPath("report").description("게시글의 신고 횟수")
+                                fieldWithPath("accountId").description("게시글을 가지고 있는 유저의 Id"),
+                                fieldWithPath("userName").description("게시글을 가지고 있는 유저의 이름"),
+                                fieldWithPath("userEmail").description("게시글을 가지고 있는 유저의 이메일"),
+                                fieldWithPath("authority").description("게시글을 가지고 있는 유저의 접근권한")
+                        ),
+                        relaxedResponseFields(beneathPath("pageable"),
+                                fieldWithPath("sort").description("페이징의 정렬"),
+                                fieldWithPath("offset").description("페이지 출발 값"),
+                                fieldWithPath("pageNumber").description("현재 페이지 번호"),
+                                fieldWithPath("pageSize").description("한 페이지에서 표시 가능한 숫자")
+                        ),
+                        relaxedResponseFields(
+                                fieldWithPath("last").description("마지막 페이지인지에 대한 여부"),
+                                fieldWithPath("totalPages").description("총 페이지 수"),
+                                fieldWithPath("totalElements").description("총 게시글의 갯수"),
+                                fieldWithPath("size").description("한 페이지에 보여줄 수 있는 게시글의 수"),
+                                fieldWithPath("number").description("현재 페이지 번호"),
+                                fieldWithPath("sort").description("정렬 속성"),
+                                fieldWithPath("sort.sorted").description("정렬의 여부"),
+                                fieldWithPath("first").description("첫 페이지 여부"),
+                                fieldWithPath("empty").description("리스트가 비어있는지의 여부")
                         )
                 ));
     }
@@ -860,6 +903,56 @@ class AccountControllerTest {
                 .with(csrf()))
                 .andDo(print())
                 .andExpect(status().isNotFound());
+    }
+
+    @Test
+    @DisplayName("Account의 notfication을 조회 성공")
+    @WithAccount("test@naver.com")
+    @Transactional
+    public void getAccountNotification_success() throws Exception {
+        Account account = this.accountRepository.findByEmail("test@naver.com").orElseThrow();
+        ArticleForm articleForm = createArticleForm(1);
+        Article article = saveArticle(account, articleForm);
+
+        for (int i = 0; i < 10; i++) {
+            this.saveNotification(article, account);
+        }
+
+        List<Notification> all = this.notificationRepository.findAll();
+        assertEquals(all.size(), 10);
+
+        this.mockMvc.perform(get("/accounts/{id}/notification", account.getId()))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(header().exists("Location"))
+                .andDo(document("get-Account-Article"));
+    }
+
+    @Test
+    @DisplayName("Account의 notfication을 삭제 성공")
+    @WithAccount("test@naver.com")
+    @Transactional
+    public void deleteAccountNotification_success() throws Exception {
+        Account account = this.accountRepository.findByEmail("test@naver.com").orElseThrow();
+        ArticleForm articleForm = createArticleForm(1);
+        Article article = saveArticle(account, articleForm);
+
+        for (int i = 0; i < 10; i++) {
+            this.saveNotification(article, account);
+        }
+
+        List<Notification> all = this.notificationRepository.findAll();
+        assertEquals(all.size(), 10);
+
+        this.mockMvc.perform(delete("/accounts/{id}/notification", account.getId())
+                .with(csrf()))
+                .andDo(print())
+                .andExpect(status().is3xxRedirection())
+                .andExpect(header().exists("Location"))
+                .andDo(document("delete-notification"));
+
+        all = this.notificationRepository.findAll();
+        assertEquals(all.size(), 0);
     }
 
 }

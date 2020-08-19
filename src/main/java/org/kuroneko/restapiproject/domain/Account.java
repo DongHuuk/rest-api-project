@@ -1,6 +1,7 @@
 package org.kuroneko.restapiproject.domain;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import lombok.*;
 
 import javax.persistence.*;
@@ -34,7 +35,8 @@ public class Account {
     @Enumerated(EnumType.STRING)
     private UserAuthority authority;
 
-    @OneToMany
+    @OneToMany(mappedBy = "account", fetch = FetchType.LAZY)
+    @JsonManagedReference
     private Set<Article> article = new HashSet<>();
 
     @OneToMany
@@ -42,5 +44,12 @@ public class Account {
 
     @OneToMany
     private Set<Notification> notification = new HashSet<>();
+
+    public void setArticle(Article article){
+        this.article.add(article);
+        if (article.getAccount() == null) {
+            article.setAccount(this);
+        }
+    }
 
 }

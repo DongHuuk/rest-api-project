@@ -2,10 +2,7 @@ package org.kuroneko.restapiproject.domain;
 
 import lombok.*;
 
-import javax.persistence.Entity;
-import javax.persistence.GeneratedValue;
-import javax.persistence.Id;
-import javax.persistence.ManyToOne;
+import javax.persistence.*;
 import java.time.LocalDateTime;
 
 @Entity
@@ -22,13 +19,14 @@ public class Notification {
 
     private LocalDateTime createTime;
 
+    private boolean checked;
+
     @ManyToOne
     private Account account;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.EAGER)
     private Article article;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     private Comments comments;
-
 }

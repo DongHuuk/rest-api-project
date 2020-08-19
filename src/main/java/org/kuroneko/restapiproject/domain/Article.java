@@ -1,5 +1,6 @@
 package org.kuroneko.restapiproject.domain;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import lombok.*;
 
 import javax.persistence.*;
@@ -35,6 +36,10 @@ public class Article {
 
     @OneToMany
     private Set<Comments> comments;
+
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JsonBackReference
+    private Account account;
 
     private int report;
 
