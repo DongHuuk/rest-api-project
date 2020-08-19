@@ -1,5 +1,6 @@
 package org.kuroneko.restapiproject.domain;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.*;
 
@@ -36,7 +37,11 @@ public class Comments {
 
     private int groupOrd; // 댓글 - 0 , 댓답글 - 1
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne
     private Article article;
+
+    @ManyToOne
+    @JsonBackReference
+    private Account account;
 
 }

@@ -39,7 +39,8 @@ public class Account {
     @JsonManagedReference
     private Set<Article> article = new HashSet<>();
 
-    @OneToMany
+    @OneToMany(mappedBy = "account", fetch = FetchType.LAZY)
+    @JsonManagedReference
     private Set<Comments> comments = new HashSet<>();
 
     @OneToMany
@@ -49,6 +50,13 @@ public class Account {
         this.article.add(article);
         if (article.getAccount() == null) {
             article.setAccount(this);
+        }
+    }
+
+    public void setComments(Comments comments) {
+        this.comments.add(comments);
+        if (comments.getAccount() == null) {
+            comments.setAccount(this);
         }
     }
 

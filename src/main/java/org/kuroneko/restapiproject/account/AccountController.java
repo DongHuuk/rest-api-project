@@ -3,17 +3,15 @@ package org.kuroneko.restapiproject.account;
 import org.kuroneko.restapiproject.account.validation.AccountValidation;
 import org.kuroneko.restapiproject.article.ArticleDTO;
 import org.kuroneko.restapiproject.article.ArticleRepository;
+import org.kuroneko.restapiproject.comments.CommentsDTO;
 import org.kuroneko.restapiproject.domain.Account;
 import org.kuroneko.restapiproject.domain.AccountForm;
-import org.kuroneko.restapiproject.domain.Article;
+import org.kuroneko.restapiproject.domain.Comments;
 import org.kuroneko.restapiproject.errors.ErrorsResource;
 import org.kuroneko.restapiproject.main.MainController;
-import org.modelmapper.Converter;
 import org.modelmapper.ModelMapper;
-import org.modelmapper.spi.MappingContext;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
@@ -21,7 +19,7 @@ import org.springframework.hateoas.server.mvc.WebMvcLinkBuilder;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.ui.Model;
+import org.springframework.security.config.web.servlet.headers.HttpStrictTransportSecurityDsl;
 import org.springframework.validation.Errors;
 import org.springframework.web.bind.WebDataBinder;
 import org.springframework.web.bind.annotation.*;
@@ -137,9 +135,8 @@ public class AccountController {
             return ResponseEntity.badRequest().build();
         }
         HttpHeaders headers = new HttpHeaders();
-        URI uri = linkTo(AccountController.class).slash(account.getId()).toUri();
-        headers.setLocation(uri);
-        Page<ArticleDTO> articleDTO = accountService.createPageableObject(id, pageable, account);
+        headers.setLocation(linkTo(AccountController.class).slash(account.getId()).toUri());
+        Page<ArticleDTO> articleDTO = accountService.createPageableArticle(id, pageable, account);
 
         return new ResponseEntity<Object>(articleDTO, headers, HttpStatus.OK);
     }
@@ -170,7 +167,8 @@ public class AccountController {
 
     //댓글들 리턴
     @GetMapping("/{id}/comments")
-    public ResponseEntity findAccountsComments(@CurrentAccount Account account, @PathVariable("id") Long id) {
+    public ResponseEntity findAccountsComments(@CurrentAccount Account account, @PathVariable("id") Long id,
+                                               @PageableDefault(sort = "createTime", direction = Sort.Direction.DESC) Pageable pageable) {
         if (account == null) {
             return ResponseEntity.notFound().build();
         }
@@ -178,10 +176,11 @@ public class AccountController {
             return ResponseEntity.badRequest().build();
         }
 
-        Account accountWithComments = accountRepository.findAccountWithCommentsById(id);
+        Page<CommentsDTO> commentsDTO = accountService.createPageableComments(id, pageable, account);
+        HttpHeaders headers = new HttpHeaders();
+        headers.setLocation(linkTo(AccountController.class).slash(account.getId()).toUri());
 
-        AccountResource accountResource = new AccountResource(accountWithComments);
-        return ResponseEntity.ok(accountResource);
+        return new ResponseEntity<Object>(commentsDTO, headers, HttpStatus.OK);
     }
 
     //checked 방식은 게시글과 동일

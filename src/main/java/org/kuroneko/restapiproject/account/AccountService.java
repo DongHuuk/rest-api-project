@@ -1,6 +1,7 @@
 package org.kuroneko.restapiproject.account;
 
 import org.kuroneko.restapiproject.article.ArticleDTO;
+import org.kuroneko.restapiproject.comments.CommentsDTO;
 import org.kuroneko.restapiproject.comments.CommentsRepository;
 import org.kuroneko.restapiproject.domain.*;
 import org.kuroneko.restapiproject.notification.NotificationRepository;
@@ -124,9 +125,9 @@ public class AccountService {
         notification.clear();
     }
 
-    public Page<ArticleDTO> createPageableObject(Long id, Pageable pageable, Account account) {
+    public Page<ArticleDTO> createPageableArticle(Long id, Pageable pageable, Account account) {
         Page<Article> pageableArticle = articleRepository.findByAccountId(id, pageable);
-        Page<ArticleDTO> articleDTO = pageableArticle.map(article -> {
+        return pageableArticle.map(article -> {
             ArticleDTO map = modelMapper.map(article, ArticleDTO.class);
             map.setAccountId(id);
             map.setUserName(account.getUsername());
@@ -134,8 +135,6 @@ public class AccountService {
             map.setAuthority(account.getAuthority() + "");
             return map;
         });
-
-        return articleDTO;
     }
 
     public void findArticlesAndDelete(Account accountWithArticles, String checked) {
@@ -154,5 +153,16 @@ public class AccountService {
                 this.articleRepository.delete(byNumber.get());
             }
         }
+    }
+
+    public Page<CommentsDTO> createPageableComments(Long id, Pageable pageable, Account account) {
+        Page<Comments> pageableComments = commentsRepository.findByAccountId(id, pageable);
+        return pageableComments.map(comments -> {
+            CommentsDTO c = modelMapper.map(comments, CommentsDTO.class);
+            c.setArticleId(comments.getArticle().getId());
+            c.setArticleNumber(comments.getArticle().getNumber());
+            return c;
+        });
+
     }
 }

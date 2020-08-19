@@ -52,22 +52,14 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @Import({RestDocsConfiguration.class})
 class AccountControllerTest {
 
-    @Autowired
-    private MockMvc mockMvc;
-    @Autowired
-    private ObjectMapper objectMapper;
-    @Autowired
-    private AccountRepository accountRepository;
-    @Autowired
-    private ModelMapper modelMapper;
-    @Autowired
-    private PasswordEncoder passwordEncoder;
-    @Autowired
-    private ArticleRepository articleRepository;
-    @Autowired
-    private CommentsRepository commentsRepository;
-    @Autowired
-    private NotificationRepository notificationRepository;
+    @Autowired private MockMvc mockMvc;
+    @Autowired private ObjectMapper objectMapper;
+    @Autowired private AccountRepository accountRepository;
+    @Autowired private ModelMapper modelMapper;
+    @Autowired private PasswordEncoder passwordEncoder;
+    @Autowired private ArticleRepository articleRepository;
+    @Autowired private CommentsRepository commentsRepository;
+    @Autowired private NotificationRepository notificationRepository;
 
     private AccountForm createAccountForm(){
         AccountForm accountForm = new AccountForm();
@@ -146,14 +138,14 @@ class AccountControllerTest {
         return commentsForm;
     }
 
-    private Comments saveComments(CommentsForm commentsForm, Article article, Account account){
+    private Comments saveComments(CommentsForm commentsForm, Article article, Account account, int i){
         Comments comments = new Comments();
         comments.setDescription(commentsForm.getDescription());
-        comments.setCreateTime(LocalDateTime.now());
+        comments.setCreateTime(LocalDateTime.now().plusHours(i));
         this.commentsRepository.save(comments);
         comments.setNumber(comments.getId() + 1);
-        comments.setArticle(article);
-        account.getComments().add(comments);
+        article.setComments(comments);
+        account.setComments(comments);
         return comments;
     }
 
@@ -170,8 +162,8 @@ class AccountControllerTest {
     @AfterEach
     private void deleteAccountRepository_After(){
         this.articleRepository.deleteAll();
-        this.accountRepository.deleteAll();
         this.commentsRepository.deleteAll();
+        this.accountRepository.deleteAll();
         this.notificationRepository.deleteAll();
     }
 
@@ -448,6 +440,7 @@ class AccountControllerTest {
                 .andExpect(status().isNotFound());
     }
 
+
     @Test
     @DisplayName("Account의 Comments를 조회 성공")
     @WithAccount("test@naver.com")
@@ -455,53 +448,56 @@ class AccountControllerTest {
     public void findAccountsComments() throws Exception{
         Account account = this.accountRepository.findByEmail("test@naver.com").orElseThrow();
 
-        ArticleForm articleForm = createArticleForm(1);
-        Article article = saveArticle(account, articleForm);
+        ArticleForm articleForm_1 = createArticleForm(1);
+        Article article_1 = saveArticle(account, articleForm_1);
+        ArticleForm articleForm_2 = createArticleForm(1);
+        Article article_2 = saveArticle(account, articleForm_2);
+        ArticleForm articleForm_3 = createArticleForm(1);
+        Article article_3 = saveArticle(account, articleForm_3);
 
-        for(int i=0; i<5; i++){
+        for(int i=0; i<22; i++){
             CommentsForm commentsForm = createCommentsForm("Test Comment Number." + i);
-            saveComments(commentsForm, article, account);
+            saveComments(commentsForm, article_1, account, i);
+        }
+        for(int i=0; i<15; i++){
+            CommentsForm commentsForm = createCommentsForm("Test Comment Number." + i);
+            saveComments(commentsForm, article_2, account, i);
+        }
+        for(int i=0; i<15; i++){
+            CommentsForm commentsForm = createCommentsForm("Test Comment Number." + i);
+            saveComments(commentsForm, article_3, account, i);
         }
 
         this.mockMvc.perform(get("/accounts/{id}/comments", account.getId()))
                 .andDo(print())
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").exists())
-                .andExpect(jsonPath("$.article").exists())
                 .andDo(document("get-Account-Comments",
-                        links(
-                                linkWithRel("self").description("해당 Account Profile로 이동")
-                        ),
                         responseHeaders(
+                                headerWithName(HttpHeaders.LOCATION).description("Account Profile을 보여주는 Link"),
                                 headerWithName(HttpHeaders.CONTENT_TYPE).description("이 API에서는 JSON-HAL 지원한다.")
                         ),
-                        relaxedResponseFields(
-                                fieldWithPath("id").type(JsonFieldType.NUMBER).description("계정의 identification"),
-                                fieldWithPath("username").description("계정의 닉네임"),
-                                fieldWithPath("email").description("계정의 아이디(로그인에 사용)"),
-                                fieldWithPath("createTime").description("계정의 생성 일자"),
-                                fieldWithPath("updateTime").description("계정의 갱신 일자"),
-                                fieldWithPath("authority").description("계정의 접근 권한"),
-                                fieldWithPath("article").description("계정이 작성한 게시글 목록들"),
-                                fieldWithPath("comments").description("계정이 작성한 댓글 목록들"),
-                                fieldWithPath("notification").description("계정의 알림들"),
-                                fieldWithPath("_links.self.href").description("생성한 Account 개인 설정화면으로 이동 할 수 있는 Link")
-                        ),
-                        relaxedResponseFields(beneathPath("comments"),
-                                fieldWithPath("id").description("댓글의 identification"),
+                        responseFields(beneathPath("content"),
                                 fieldWithPath("number").description("댓글의 순번"),
                                 fieldWithPath("description").description("댓글의 내용"),
                                 fieldWithPath("createTime").description("댓글이 생성된 시간"),
                                 fieldWithPath("agree").description("댓글의 추천 수"),
                                 fieldWithPath("disagree").description("댓글의 비추천 수"),
-                                fieldWithPath("report").description("댓글의 신고 수"),
                                 fieldWithPath("originNo").description("댓글 위치 값(순서)"),
                                 fieldWithPath("groupOrd").description("댓글과 답글의 구분"),
-                                fieldWithPath("article").description("속해있는 게시글"),
-                                fieldWithPath("article.id").description("댓글이 속해있는 게시글의 identification"),
-                                fieldWithPath("article.number").description("댓글이 속해있는 게시글의 순번")
-                            )
-                    ));
+                                fieldWithPath("articleId").description("댓글이 속해있는 게시글의 identification"),
+                                fieldWithPath("articleNumber").description("댓글이 속해있는 게시글의 순번")
+                        ),
+                        relaxedResponseFields(
+                                fieldWithPath("last").description("끝 페이지인가에 대한 여부"),
+                                fieldWithPath("totalPages").description("총 페이시 수"),
+                                fieldWithPath("totalElements").description("페이지의 요소들의 총 갯수"),
+                                fieldWithPath("size").description("페이지 내에 존재하는 최대 요소들의 갯수"),
+                                fieldWithPath("first").description("첫 페이지인가에 대한 여부"),
+                                fieldWithPath("number").description("현재 페이지 번호"),
+                                fieldWithPath("sort.sorted").description("정렬의 적용 여부"),
+                                fieldWithPath("empty").description("리스트가 비어있는지의 여부")
+                        )
+                ));
     }
 
     @Test
@@ -552,7 +548,7 @@ class AccountControllerTest {
 
         for(int i=0; i<5; i++){
             CommentsForm commentsForm = createCommentsForm("Test Comment Number." + i);
-            saveComments(commentsForm, article, account);
+            saveComments(commentsForm, article, account, i);
         }
 
         List<Comments> all = commentsRepository.findAll();
@@ -615,7 +611,7 @@ class AccountControllerTest {
 
         for(int i=0; i<5; i++){
             CommentsForm commentsForm = createCommentsForm("Test Comment Number." + i);
-            saveComments(commentsForm, article, newAccount);
+            saveComments(commentsForm, article, newAccount, i);
         }
 
         List<Comments> all = commentsRepository.findAll();
@@ -641,7 +637,7 @@ class AccountControllerTest {
 
         for(int i=0; i<5; i++){
             CommentsForm commentsForm = createCommentsForm("Test Comment Number." + i);
-            saveComments(commentsForm, article, account);
+            saveComments(commentsForm, article, account, i);
         }
 
         List<Comments> all = commentsRepository.findAll();
@@ -667,7 +663,7 @@ class AccountControllerTest {
 
         for(int i=0; i<5; i++){
             CommentsForm commentsForm = createCommentsForm("Test Comment Number." + i);
-            saveComments(commentsForm, article, account);
+            saveComments(commentsForm, article, account, i);
         }
 
         List<Comments> all = commentsRepository.findAll();
@@ -681,229 +677,7 @@ class AccountControllerTest {
                 .andExpect(status().isNotFound());
     }
 
-    @Test
-    @DisplayName("Account의 articles를 조회 성공")
-    @WithAccount("test@naver.com")
-    @Transactional
-    public void findAccountsArticles() throws Exception{
-        Account account = this.accountRepository.findByEmail("test@naver.com").orElseThrow();
 
-        for(int i = 0; i<50; i++){
-            ArticleForm articleForm = createArticleForm(1);
-            saveArticle(account, articleForm, i);
-        }
-
-        this.mockMvc.perform(get("/accounts/{id}/articles", account.getId()))
-                .andDo(print())
-                .andExpect(status().isOk())
-                .andDo(document("get-Account-Article",
-                        responseHeaders(
-                                headerWithName(HttpHeaders.CONTENT_TYPE).description("이 API에서는 JSON-HAL 지원한다."),
-                                headerWithName(HttpHeaders.LOCATION).description("이 계정의 프로필 URL")
-                        ),
-                        responseFields(beneathPath("content"),
-                                fieldWithPath("number").description("게시글의 순번"),
-                                fieldWithPath("title").description("게시글의 제목"),
-                                fieldWithPath("description").description("게시글의 내용"),
-                                fieldWithPath("source").description("게시글에 첨부파일 등이 있다면 그에 대한 출처 정보"),
-                                fieldWithPath("division").description("게시글의 글 유형"),
-                                fieldWithPath("createTime").description("게시글이 생성된 시간"),
-                                fieldWithPath("updateTime").description("게시글이 수정된 시간"),
-                                fieldWithPath("comments").description("게시글의 댓글들"),
-                                fieldWithPath("accountId").description("게시글을 가지고 있는 유저의 Id"),
-                                fieldWithPath("userName").description("게시글을 가지고 있는 유저의 이름"),
-                                fieldWithPath("userEmail").description("게시글을 가지고 있는 유저의 이메일"),
-                                fieldWithPath("authority").description("게시글을 가지고 있는 유저의 접근권한")
-                        ),
-                        relaxedResponseFields(beneathPath("pageable"),
-                                fieldWithPath("sort").description("페이징의 정렬"),
-                                fieldWithPath("offset").description("페이지 출발 값"),
-                                fieldWithPath("pageNumber").description("현재 페이지 번호"),
-                                fieldWithPath("pageSize").description("한 페이지에서 표시 가능한 숫자")
-                        ),
-                        relaxedResponseFields(
-                                fieldWithPath("last").description("마지막 페이지인지에 대한 여부"),
-                                fieldWithPath("totalPages").description("총 페이지 수"),
-                                fieldWithPath("totalElements").description("총 게시글의 갯수"),
-                                fieldWithPath("size").description("한 페이지에 보여줄 수 있는 게시글의 수"),
-                                fieldWithPath("number").description("현재 페이지 번호"),
-                                fieldWithPath("sort").description("정렬 속성"),
-                                fieldWithPath("sort.sorted").description("정렬의 여부"),
-                                fieldWithPath("first").description("첫 페이지 여부"),
-                                fieldWithPath("empty").description("리스트가 비어있는지의 여부")
-                        )
-                ));
-    }
-
-    @Test
-    @DisplayName("Account의 articles를 조회 실패(존재하지 않는 account 조회)")
-    @Transactional
-    @WithAccount("test1@test.com")
-    public void findAccountsArticles_fail_1() throws Exception {
-        this.mockMvc.perform(get("/accounts/12345/articles"))
-                .andDo(print())
-                .andExpect(status().isBadRequest());
-    }
-
-    @Test
-    @DisplayName("Account의 articles를 조회 실패(nonPrincipal)")
-    @Transactional
-    public void findAccountsArticles_fail_principal() throws Exception {
-        AccountForm accountForm = createAccountForm();
-        Account account = saveAccount(accountForm);
-
-        this.mockMvc.perform(get("/accounts/{id}/articles", account.getId()))
-                .andDo(print())
-                .andExpect(status().isNotFound());
-    }
-
-    @Test
-    @DisplayName("Account의 articles를 조회 실패(principal과 조회 하려는 Account의 Id가 다를 경우)")
-    @Transactional
-    @WithAccount("test1@test.com")
-    public void findAccountsArticles_fail_unMatch() throws Exception {
-        AccountForm accountForm = createAccountForm();
-        Account account = saveAccount(accountForm);
-        ArticleForm articleForm = createArticleForm(1);
-        saveArticle(account, articleForm);
-
-        this.mockMvc.perform(get("/accounts/{id}/articles", account.getId()))
-                .andDo(print())
-                .andExpect(status().isBadRequest());
-    }
-
-    @Test
-    @DisplayName("Account의 articles를 삭제 성공")
-    @WithAccount("test@naver.com")
-    @Transactional
-    public void deleteAccountArticles_success() throws Exception {
-        Account account = this.accountRepository.findByEmail("test@naver.com").orElseThrow();
-        ArticleForm articleForm1 = createArticleForm(1);
-        saveArticle(account, articleForm1);
-        ArticleForm articleForm2 = createArticleForm(1);
-        saveArticle(account, articleForm2);
-        ArticleForm articleForm3 = createArticleForm(1);
-        saveArticle(account, articleForm3);
-
-        List<Article> all = articleRepository.findAll();
-        String str = all.get(0).getNumber() + ", " + all.get(2).getNumber();
-
-        this.mockMvc.perform(delete("/accounts/{id}/articles", account.getId())
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(str)
-                .with(csrf()))
-                .andDo(print())
-                .andExpect(status().is3xxRedirection())
-                .andExpect(header().exists("Location"))
-                .andDo(document("delete-articles",
-                        links(
-                                linkWithRel("self").description("해당 Account Profile로 이동")
-                        ),
-                        responseHeaders(
-                                headerWithName(HttpHeaders.LOCATION).description("redirect url"),
-                                headerWithName(HttpHeaders.CONTENT_TYPE).description("이 API에서는 JSON-HAL 지원한다.")
-                        ),
-                        relaxedResponseFields(
-                                fieldWithPath("id").type(JsonFieldType.NUMBER).description("계정의 identification"),
-                                fieldWithPath("username").description("계정의 닉네임"),
-                                fieldWithPath("email").description("계정의 아이디(로그인에 사용)"),
-                                fieldWithPath("createTime").description("계정의 생성 일자"),
-                                fieldWithPath("updateTime").description("계정의 갱신 일자"),
-                                fieldWithPath("authority").description("계정의 접근 권한"),
-                                fieldWithPath("article").description("계정이 작성한 게시글 목록들"),
-                                fieldWithPath("comments").description("계정이 작성한 댓글 목록들"),
-                                fieldWithPath("notification").description("계정의 알림들"),
-                                fieldWithPath("_links.self.href").description("생성한 Account 개인 설정화면으로 이동 할 수 있는 Link")
-                        ),
-                        responseFields(beneathPath("article"),
-                                fieldWithPath("id").description("게시글의 identification"),
-                                fieldWithPath("number").description("게시글의 순번"),
-                                fieldWithPath("title").description("게시글의 제목"),
-                                fieldWithPath("description").description("게시글의 내용"),
-                                fieldWithPath("source").description("게시글에 첨부파일 등이 있다면 그에 대한 출처 정보"),
-                                fieldWithPath("division").description("게시글의 글 유형"),
-                                fieldWithPath("createTime").description("게시글이 생성된 시간"),
-                                fieldWithPath("updateTime").description("게시글이 수정된 시간"),
-                                fieldWithPath("comments").description("게시글의 댓글들"),
-                                fieldWithPath("report").description("게시글의 신고 횟수")
-                        )
-                ));
-    }
-
-    @Test
-    @DisplayName("Account의 articles를 삭제 실패(Principal과 Login Account 다름)")
-    @WithAccount("test@naver.com")
-    @Transactional
-    public void deleteAccountArticles_fail_accountMiss() throws Exception {
-        AccountForm accountForm = createAccountForm();
-        Account newAccount = saveAccount(accountForm);
-
-        ArticleForm articleForm1 = createArticleForm(1);
-        saveArticle(newAccount, articleForm1);
-        ArticleForm articleForm2 = createArticleForm(1);
-        saveArticle(newAccount, articleForm2);
-        ArticleForm articleForm3 = createArticleForm(1);
-        saveArticle(newAccount, articleForm3);
-
-        List<Article> all = articleRepository.findAll();
-        String str = all.get(0).getId() + ", " + all.get(2).getId();
-
-        this.mockMvc.perform(delete("/accounts/{id}/articles", newAccount.getId())
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(str)
-                .with(csrf()))
-                .andDo(print())
-                .andExpect(status().isBadRequest());
-    }
-
-    @Test
-    @DisplayName("Account의 articles를 삭제 실패(이상한 URL 요청)")
-    @WithAccount("test@naver.com")
-    @Transactional
-    public void deleteAccountArticles_fail_unMatch() throws Exception {
-        Account account = accountRepository.findByEmail("test@naver.com").orElseThrow();
-        ArticleForm articleForm1 = createArticleForm(1);
-        saveArticle(account, articleForm1);
-        ArticleForm articleForm2 = createArticleForm(1);
-        saveArticle(account, articleForm2);
-        ArticleForm articleForm3 = createArticleForm(1);
-        saveArticle(account, articleForm3);
-
-        List<Article> all = articleRepository.findAll();
-        String str = all.get(0).getId() + ", " + all.get(2).getId();
-
-        this.mockMvc.perform(delete("/accounts/{id}/articles", 1982739548)
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(str)
-                .with(csrf()))
-                .andDo(print())
-                .andExpect(status().isBadRequest());
-    }
-
-    @Test
-    @DisplayName("Account의 articles를 삭제 실패(non principal)")
-    @Transactional
-    public void deleteAccountArticles_fail_principal() throws Exception {
-        AccountForm accountForm = createAccountForm();
-        Account account = saveAccount(accountForm);
-
-        ArticleForm articleForm1 = createArticleForm(1);
-        saveArticle(account, articleForm1);
-        ArticleForm articleForm2 = createArticleForm(1);
-        saveArticle(account, articleForm2);
-        ArticleForm articleForm3 = createArticleForm(1);
-        saveArticle(account, articleForm3);
-
-        List<Article> all = articleRepository.findAll();
-        String str = all.get(0).getId() + ", " + all.get(2).getId();
-
-        this.mockMvc.perform(delete("/accounts/{id}/articles", account.getId())
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(str)
-                .with(csrf()))
-                .andDo(print())
-                .andExpect(status().isNotFound());
-    }
 
     @Test
     @DisplayName("Account의 notfication을 조회 성공")

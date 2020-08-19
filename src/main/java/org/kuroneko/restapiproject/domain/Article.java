@@ -5,6 +5,7 @@ import lombok.*;
 
 import javax.persistence.*;
 import java.time.LocalDateTime;
+import java.util.HashSet;
 import java.util.Set;
 
 @Entity
@@ -35,12 +36,19 @@ public class Article {
     private LocalDateTime updateTime;
 
     @OneToMany
-    private Set<Comments> comments;
+    private Set<Comments> comments = new HashSet<>();
 
     @ManyToOne(fetch = FetchType.EAGER)
     @JsonBackReference
     private Account account;
 
     private int report;
+
+    public void setComments(Comments comments) {
+        this.comments.add(comments);
+        if (comments.getArticle() == null) {
+            comments.setArticle(this);
+        }
+    }
 
 }
