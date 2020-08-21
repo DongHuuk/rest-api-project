@@ -38,6 +38,7 @@ public class Comments {
     private int groupOrd; // 댓글 - 0 , 댓답글 - 1
 
     @ManyToOne
+    @JsonBackReference
     private Article article;
 
     @ManyToOne

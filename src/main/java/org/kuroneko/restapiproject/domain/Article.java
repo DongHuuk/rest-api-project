@@ -1,6 +1,7 @@
 package org.kuroneko.restapiproject.domain;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import lombok.*;
 
 import javax.persistence.*;
@@ -36,6 +37,7 @@ public class Article {
     private LocalDateTime updateTime;
 
     @OneToMany
+    @JsonManagedReference
     private Set<Comments> comments = new HashSet<>();
 
     @ManyToOne(fetch = FetchType.EAGER)

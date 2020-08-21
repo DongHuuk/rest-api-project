@@ -15,10 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.Errors;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -102,21 +99,27 @@ public class AccountService {
     }
 
     public void findCommentsAndDelete(Account accountWithComments, String checked) {
-        String[] splitStr = checked.split(",");
+        String[] split = checked.split(",");
+        List<Long> collect = Arrays.stream(split).map(s -> {
+            s = s.trim();
+            return Long.valueOf(s);
+        }).collect(Collectors.toList());
 
-        for (String str : splitStr) {
-            str = str.trim();
-            Optional<Comments> byNumber = this.commentsRepository.findByNumber(Long.valueOf(str));
+        List<Comments> byNumber = this.commentsRepository.findByNumber(collect);
 
-            if (byNumber.isEmpty()) {
-                //TODO Exception 처리
-            }
+        if (byNumber.isEmpty()) {
+            //TODO Exception 처리
+        }
 
-            if (accountWithComments.getComments().contains(byNumber.get())) {
-                accountWithComments.getComments().remove(byNumber.get());
-                this.commentsRepository.delete(byNumber.get());
+        for (Comments comments : byNumber) {
+            if (accountWithComments.getComments().contains(comments)) {
+                accountWithComments.getComments().remove(comments);
+                comments.getArticle().getComments().remove(comments);
+//                this.commentsRepository.delete(comments);
             }
         }
+        this.commentsRepository.deleteAllByIdInQuery(byNumber.stream().map(Comments::getId).collect(Collectors.toList()));
+//        this.commentsRepository.deleteInBatch(byNumber);
     }
 
     public void deleteNotifications(Account accountWithNotification) {

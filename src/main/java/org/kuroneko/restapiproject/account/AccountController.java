@@ -194,20 +194,16 @@ public class AccountController {
         }
 
         Account accountWithComments = accountRepository.findAccountWithCommentsById(id);
-
         AccountResource accountResource = new AccountResource(accountWithComments);
-        //TODO append CreateComments Link
-        HttpHeaders headers = new HttpHeaders();
-        URI uri = linkTo(AccountController.class).slash(account.getId() + "/comments").toUri();
-        headers.setLocation(uri);
+        accountResource.add(linkTo(AccountController.class).slash(account.getId() + "/comments").withRel("getComments"));
 
         if (checked == null) {
-            return new ResponseEntity(headers, HttpStatus.SEE_OTHER);
+            return new ResponseEntity(accountResource, HttpStatus.SEE_OTHER);
         }
 
         accountService.findCommentsAndDelete(accountWithComments, checked);
 
-        return new ResponseEntity(accountResource, headers, HttpStatus.SEE_OTHER);
+        return new ResponseEntity(accountResource, HttpStatus.SEE_OTHER);
     }
 
     //알림들 리턴
