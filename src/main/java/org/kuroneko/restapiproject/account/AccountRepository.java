@@ -1,6 +1,5 @@
 package org.kuroneko.restapiproject.account;
 
-import org.kuroneko.restapiproject.article.ArticleRepositoryExtension;
 import org.kuroneko.restapiproject.domain.Account;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;

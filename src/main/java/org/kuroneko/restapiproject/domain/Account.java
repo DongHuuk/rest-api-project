@@ -43,7 +43,8 @@ public class Account {
     @JsonManagedReference
     private Set<Comments> comments = new HashSet<>();
 
-    @OneToMany
+    @OneToMany(mappedBy = "account")
+    @JsonManagedReference
     private Set<Notification> notification = new HashSet<>();
 
     public void setArticle(Article article){

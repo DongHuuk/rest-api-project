@@ -1,5 +1,6 @@
 package org.kuroneko.restapiproject.domain;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import lombok.*;
 
 import javax.persistence.*;
@@ -17,16 +18,19 @@ public class Notification {
     @GeneratedValue
     private Long id;
 
+    private Long number;
+
     private LocalDateTime createTime;
 
     private boolean checked;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JsonBackReference
     private Account account;
 
-    @ManyToOne(fetch = FetchType.EAGER)
+    @ManyToOne
     private Article article;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne
     private Comments comments;
 }

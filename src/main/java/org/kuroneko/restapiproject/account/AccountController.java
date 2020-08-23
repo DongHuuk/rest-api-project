@@ -1,5 +1,6 @@
 package org.kuroneko.restapiproject.account;
 
+import javassist.NotFoundException;
 import org.kuroneko.restapiproject.account.validation.AccountValidation;
 import org.kuroneko.restapiproject.article.ArticleDTO;
 import org.kuroneko.restapiproject.article.ArticleRepository;
@@ -7,8 +8,10 @@ import org.kuroneko.restapiproject.comments.CommentsDTO;
 import org.kuroneko.restapiproject.domain.Account;
 import org.kuroneko.restapiproject.domain.AccountForm;
 import org.kuroneko.restapiproject.domain.Comments;
+import org.kuroneko.restapiproject.domain.Notification;
 import org.kuroneko.restapiproject.errors.ErrorsResource;
 import org.kuroneko.restapiproject.main.MainController;
+import org.kuroneko.restapiproject.notification.NotificationDTO;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -143,7 +146,8 @@ public class AccountController {
 
     //checked 방식을 어떻게 할것인가. Ajax로 checked된 값을 ","로 구분하여 JSON으로 전송
     @DeleteMapping("/{id}/articles")
-    public ResponseEntity deleteAccountsArticles(@CurrentAccount Account account, @PathVariable("id") Long id, @RequestBody String checked) {
+    public ResponseEntity deleteAccountsArticles(@CurrentAccount Account account, @PathVariable("id") Long id,
+                                                 @RequestBody String checked, Errors errors) {
         if (account == null) {
             return ResponseEntity.notFound().build();
         }
@@ -160,7 +164,13 @@ public class AccountController {
             return new ResponseEntity(accountResource, HttpStatus.SEE_OTHER);
         }
 
-        accountService.findArticlesAndDelete(accountWithArticle, checked);
+        try {
+            accountService.findArticlesAndDelete(accountWithArticle, checked);
+        } catch (NotFoundException e) {
+            errors.rejectValue("number", "wrong.number", "not found articles by numbers");
+            ErrorsResource errorsResource = new ErrorsResource(errors);
+            return new ResponseEntity(errorsResource, HttpStatus.BAD_REQUEST);
+        }
 
         return new ResponseEntity(accountResource, HttpStatus.SEE_OTHER);
     }
@@ -185,7 +195,8 @@ public class AccountController {
 
     //checked 방식은 게시글과 동일
     @DeleteMapping("/{id}/comments")
-    public ResponseEntity deleteAccountsComments(@CurrentAccount Account account, @PathVariable("id") Long id, @RequestBody String checked) {
+    public ResponseEntity deleteAccountsComments(@CurrentAccount Account account, @PathVariable("id") Long id,
+                                                 @RequestBody String checked, Errors errors) {
         if (account == null) {
             return ResponseEntity.notFound().build();
         }
@@ -201,14 +212,21 @@ public class AccountController {
             return new ResponseEntity(accountResource, HttpStatus.SEE_OTHER);
         }
 
-        accountService.findCommentsAndDelete(accountWithComments, checked);
+        try {
+            accountService.findCommentsAndDelete(accountWithComments, checked);
+        } catch (NotFoundException e) {
+            errors.rejectValue("number", "wrong.number", "not found comments by numbers");
+            ErrorsResource errorsResource = new ErrorsResource(errors);
+            return new ResponseEntity(errorsResource, HttpStatus.BAD_REQUEST);
+        }
 
         return new ResponseEntity(accountResource, HttpStatus.SEE_OTHER);
     }
 
     //알림들 리턴
     @GetMapping("/{id}/notification")
-    public ResponseEntity findAccountsNotifications(@CurrentAccount Account account, @PathVariable("id") Long id, Pageable pageable) {
+    public ResponseEntity findAccountsNotifications(@CurrentAccount Account account, @PathVariable("id") Long id,
+                                                    @PageableDefault(sort = "createTime", direction = Sort.Direction.DESC) Pageable pageable) {
         if (account == null) {
             return ResponseEntity.notFound().build();
         }
@@ -216,16 +234,16 @@ public class AccountController {
             return ResponseEntity.badRequest().build();
         }
 
-        Account accountWithNotification = accountRepository.findAccountWithNotificationById(id);
-        //QueryDSL 적용해서 pageable이랑 특정 account Id에 해당하는 값을 가져와야함
+        Page<NotificationDTO> pageableNotification = accountService.createPageableNotification(id, pageable, account);
+        HttpHeaders httpHeaders = new HttpHeaders();
+        httpHeaders.setLocation(linkTo(AccountController.class).slash(account.getId()).toUri());
 
-        AccountResource accountResource = new AccountResource(accountWithNotification);
-        return ResponseEntity.ok(accountResource);
+        return new ResponseEntity(pageableNotification, httpHeaders, HttpStatus.OK);
     }
 
-    //notification은 전체삭제만 지원
+    //다른 article과 commnets와 동일하게 동작
     @DeleteMapping("/{id}/notification")
-    public ResponseEntity deleteAccountsNotifications(@CurrentAccount Account account, @PathVariable("id") Long id) {
+    public ResponseEntity deleteAccountsNotifications(@CurrentAccount Account account, @PathVariable("id") Long id, @RequestBody String checked, Errors errors) {
         if (account == null) {
             return ResponseEntity.notFound().build();
         }
@@ -234,16 +252,18 @@ public class AccountController {
         }
 
         Account accountWithNotification = accountRepository.findAccountWithNotificationById(id);
-
         AccountResource accountResource = new AccountResource(accountWithNotification);
-        //TODO append CreateNotification Link
-        HttpHeaders headers = new HttpHeaders();
-        URI uri = linkTo(AccountController.class).slash(account.getId() + "/notification").toUri();
-        headers.setLocation(uri);
+        accountResource.add(linkTo(AccountController.class).slash(account.getId() + "/notification").withRel("getNotification"));
 
-        accountService.deleteNotifications(accountWithNotification);
+        try {
+            accountService.findNotificationAndDelete(accountWithNotification, checked);
+        } catch (NotFoundException e) {
+            errors.rejectValue("number", "wrong.number", "not found comments by numbers");
+            ErrorsResource errorsResource = new ErrorsResource(errors);
+            return new ResponseEntity(errorsResource, HttpStatus.BAD_REQUEST);
+        }
 
-        return new ResponseEntity(accountResource, headers, HttpStatus.SEE_OTHER);
+        return new ResponseEntity(accountResource, HttpStatus.SEE_OTHER);
     }
 
 }

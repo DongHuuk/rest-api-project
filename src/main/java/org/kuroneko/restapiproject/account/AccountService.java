@@ -1,9 +1,11 @@
 package org.kuroneko.restapiproject.account;
 
+import javassist.NotFoundException;
 import org.kuroneko.restapiproject.article.ArticleDTO;
 import org.kuroneko.restapiproject.comments.CommentsDTO;
 import org.kuroneko.restapiproject.comments.CommentsRepository;
 import org.kuroneko.restapiproject.domain.*;
+import org.kuroneko.restapiproject.notification.NotificationDTO;
 import org.kuroneko.restapiproject.notification.NotificationRepository;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,6 +16,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.Errors;
 
+import javax.security.auth.login.AccountNotFoundException;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -98,7 +101,28 @@ public class AccountService {
         this.accountRepository.delete(account);
     }
 
-    public void findCommentsAndDelete(Account accountWithComments, String checked) {
+    public void findArticlesAndDelete(Account accountWithArticles, String checked) throws NotFoundException {
+        String[] split = checked.split(",");
+        List<Long> collect = Arrays.stream(split).map(s -> {
+            s = s.trim();
+            return Long.valueOf(s);
+        }).collect(Collectors.toList());
+
+        List<Article> byNumber = this.articleRepository.findByNumber(collect);
+
+        if (byNumber.isEmpty()) {
+            throw new NotFoundException("Not Found Articles by Numbers");
+        }
+
+        for (Article  article : byNumber) {
+            if (accountWithArticles.getArticle().contains(article)) {
+                accountWithArticles.getArticle().remove(article);
+            }
+        }
+        this.articleRepository.deleteAllByIdInQuery(byNumber.stream().map(Article::getNumber).collect(Collectors.toList()));
+    }
+
+    public void findCommentsAndDelete(Account accountWithComments, String checked) throws NotFoundException {
         String[] split = checked.split(",");
         List<Long> collect = Arrays.stream(split).map(s -> {
             s = s.trim();
@@ -108,7 +132,7 @@ public class AccountService {
         List<Comments> byNumber = this.commentsRepository.findByNumber(collect);
 
         if (byNumber.isEmpty()) {
-            //TODO Exception 처리
+            throw new NotFoundException("Not Found Articles by Numbers");
         }
 
         for (Comments comments : byNumber) {
@@ -122,10 +146,26 @@ public class AccountService {
 //        this.commentsRepository.deleteInBatch(byNumber);
     }
 
-    public void deleteNotifications(Account accountWithNotification) {
-        Set<Notification> notification = accountWithNotification.getNotification();
-        notificationRepository.deleteAll(notification);
-        notification.clear();
+    public void findNotificationAndDelete(Account accountWithNotification, String checked) throws NotFoundException {
+        String[] split = checked.split(",");
+        List<Long> collect = Arrays.stream(split).map(s -> {
+            s = s.trim();
+            return Long.valueOf(s);
+        }).collect(Collectors.toList());
+
+        List<Notification> byNumber = this.notificationRepository.findByNumber(collect);
+
+        if (byNumber.isEmpty()) {
+            throw new NotFoundException("Not Found Articles by Numbers");
+        }
+
+        for (Notification notification : byNumber) {
+            if (accountWithNotification.getNotification().contains(notification)) {
+                accountWithNotification.getNotification().remove(notification);
+            }
+        }
+        this.notificationRepository.deleteAllByIdInQuery(byNumber.stream().map(Notification::getId).collect(Collectors.toList()));
+//        this.notificationRepository.deleteInBatch(byNumber);
     }
 
     public Page<ArticleDTO> createPageableArticle(Long id, Pageable pageable, Account account) {
@@ -140,32 +180,36 @@ public class AccountService {
         });
     }
 
-    public void findArticlesAndDelete(Account accountWithArticles, String checked) {
-        String[] splitStr = checked.split(",");
-
-        for (String str : splitStr) {
-            str = str.trim();
-            Optional<Article> byNumber = this.articleRepository.findByNumber(Long.valueOf(str));
-
-            if (byNumber.isEmpty()) {
-                //TODO Exception 처리
-            }
-
-            if (accountWithArticles.getArticle().contains(byNumber.get())) {
-                accountWithArticles.getArticle().remove(byNumber.get());
-                this.articleRepository.delete(byNumber.get());
-            }
-        }
-    }
-
     public Page<CommentsDTO> createPageableComments(Long id, Pageable pageable, Account account) {
         Page<Comments> pageableComments = commentsRepository.findByAccountId(id, pageable);
         return pageableComments.map(comments -> {
             CommentsDTO c = modelMapper.map(comments, CommentsDTO.class);
-            c.setArticleId(comments.getArticle().getId());
-            c.setArticleNumber(comments.getArticle().getNumber());
+            if (comments.getArticle() != null) {
+                c.setArticleId(comments.getArticle().getId());
+                c.setArticleNumber(comments.getArticle().getNumber());
+            }
             return c;
         });
 
     }
+
+    public Page<NotificationDTO> createPageableNotification(Long id, Pageable pageable, Account account) {
+        Page<Notification> pageableComments = notificationRepository.findByAccountId(id, pageable);
+        return pageableComments.map(notification -> {
+            NotificationDTO c = modelMapper.map(notification, NotificationDTO.class);
+            if (notification.getArticle() != null) {
+                c.setArticleId(notification.getArticle().getId());
+                c.setArticleNumber(notification.getArticle().getNumber());
+            }
+            if (notification.getComments() != null) {
+                c.setCommentsId(notification.getComments().getId());
+                c.setCommentsNumber(notification.getComments().getNumber());
+            }
+            c.setAccountId(notification.getAccount().getId());
+            c.setAccountUsername(notification.getAccount().getUsername());
+            return c;
+        });
+    }
+
+
 }

@@ -250,10 +250,10 @@ public class AccountControllerTestWithArticles {
                 .andDo(print())
                 .andExpect(status().is3xxRedirection())
                 .andDo(document("delete-articles",
-                        links(
-                                linkWithRel("self").description("해당 Account Profile로 이동"),
-                                linkWithRel("getArticles").description("해당 Account의 get_artile로 이동")
-                        ),
+//                        links(
+//                                linkWithRel("self").description("해당 Account Profile로 이동"),
+//                                linkWithRel("getArticles").description("해당 Account의 get_artile로 이동")
+//                        ),
                         requestHeaders(
                                 headerWithName(HttpHeaders.CONTENT_TYPE).description("Json 타입의 숫자 + ','의 값을 보낸다. ex) 1, 3, 5")
                         ),
@@ -272,19 +272,19 @@ public class AccountControllerTestWithArticles {
                                 fieldWithPath("notification").description("계정의 알림들"),
                                 fieldWithPath("_links.self.href").description("Account 개인 설정화면으로 이동 할 수 있는 Link"),
                                 fieldWithPath("_links.getArticles.href").description("Account의 게시글들을 보여주는 get Link")
-                        ),
-                        responseFields(beneathPath("article"),
-                                fieldWithPath("id").description("게시글의 identification"),
-                                fieldWithPath("number").description("게시글의 순번"),
-                                fieldWithPath("title").description("게시글의 제목"),
-                                fieldWithPath("description").description("게시글의 내용"),
-                                fieldWithPath("source").description("게시글에 첨부파일 등이 있다면 그에 대한 출처 정보"),
-                                fieldWithPath("division").description("게시글의 글 유형"),
-                                fieldWithPath("createTime").description("게시글이 생성된 시간"),
-                                fieldWithPath("updateTime").description("게시글이 수정된 시간"),
-                                fieldWithPath("comments").description("게시글의 댓글들"),
-                                fieldWithPath("report").description("게시글의 신고 횟수")
                         )
+//                        responseFields(beneathPath("article"),
+//                                fieldWithPath("id").description("게시글의 identification"),
+//                                fieldWithPath("number").description("게시글의 순번"),
+//                                fieldWithPath("title").description("게시글의 제목"),
+//                                fieldWithPath("description").description("게시글의 내용"),
+//                                fieldWithPath("source").description("게시글에 첨부파일 등이 있다면 그에 대한 출처 정보"),
+//                                fieldWithPath("division").description("게시글의 글 유형"),
+//                                fieldWithPath("createTime").description("게시글이 생성된 시간"),
+//                                fieldWithPath("updateTime").description("게시글이 수정된 시간"),
+//                                fieldWithPath("comments").description("게시글의 댓글들"),
+//                                fieldWithPath("report").description("게시글의 신고 횟수")
+//                        )
                 ));
     }
 
