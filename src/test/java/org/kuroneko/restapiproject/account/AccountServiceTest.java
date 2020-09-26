@@ -1,5 +1,6 @@
 package org.kuroneko.restapiproject.account;
 
+import com.google.common.base.Ascii;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -85,7 +86,13 @@ class AccountServiceTest {
             collect = accountList.stream().map(Account::getId).filter(id -> !account.getId().equals(id)).collect(Collectors.toList());
             // !collect.isEmpty() => "테스트15"는 사용 못한다.
         }
-
-
     }
+
+    @Test
+    public void test(){
+        char a = 'a';
+        System.out.println(a + "");
+        System.out.println("-=--0=-=-=-=");
+    }
+    
 }

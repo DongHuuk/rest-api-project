@@ -26,5 +26,4 @@ class AppTests {
                 .alwaysDo(print())
                 .build();
     }
-
 }

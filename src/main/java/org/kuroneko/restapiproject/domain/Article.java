@@ -44,6 +44,9 @@ public class Article {
     @JsonBackReference
     private Account account;
 
+    @ManyToOne
+    private Community community;
+
     private int report;
 
     public void setComments(Comments comments) {

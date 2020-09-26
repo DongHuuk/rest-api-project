@@ -3,7 +3,9 @@ package org.kuroneko.restapiproject.main;
 import org.kuroneko.restapiproject.account.AccountController;
 import org.springframework.hateoas.RepresentationModel;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.servlet.view.RedirectView;
 
 import java.security.Principal;
 
@@ -27,8 +29,18 @@ public class MainController {
 
     //TODO Principal를 현재 Account Domain으로 바로 받아올 수 있게 설정 및 인증 서버 OAuth2 설정해야 함.
     @GetMapping("/")
-    public String index(Principal principal) {
-        return "index";
+    public String index_get(Principal principal) {
+        return "index_Get";
+    }
+
+    @PostMapping("/")
+    public String index_post(Principal principal) {
+        return "index_Post";
+    }
+
+    @GetMapping("/re")
+    public RedirectView reIndex(){
+        return new RedirectView("/");
     }
 
     //추후에 Event를 설명하는 index 페이지를 따로 만들어서 그쪽을 가리키게끔 만드는 것

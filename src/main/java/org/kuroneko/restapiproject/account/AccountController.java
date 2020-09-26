@@ -1,14 +1,13 @@
 package org.kuroneko.restapiproject.account;
 
 import javassist.NotFoundException;
+import lombok.extern.slf4j.Slf4j;
 import org.kuroneko.restapiproject.account.validation.AccountValidation;
 import org.kuroneko.restapiproject.article.ArticleDTO;
 import org.kuroneko.restapiproject.article.ArticleRepository;
 import org.kuroneko.restapiproject.comments.CommentsDTO;
 import org.kuroneko.restapiproject.domain.Account;
 import org.kuroneko.restapiproject.domain.AccountForm;
-import org.kuroneko.restapiproject.domain.Comments;
-import org.kuroneko.restapiproject.domain.Notification;
 import org.kuroneko.restapiproject.errors.ErrorsResource;
 import org.kuroneko.restapiproject.main.MainController;
 import org.kuroneko.restapiproject.notification.NotificationDTO;
@@ -22,17 +21,17 @@ import org.springframework.hateoas.server.mvc.WebMvcLinkBuilder;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.config.web.servlet.headers.HttpStrictTransportSecurityDsl;
 import org.springframework.validation.Errors;
 import org.springframework.web.bind.WebDataBinder;
 import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
-import java.net.URI;
 import java.util.Optional;
 
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
+import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 
+@Slf4j
 @RestController
 @RequestMapping(value = "/accounts", produces = "application/hal+json;charset=UTF-8")
 public class AccountController {
@@ -68,7 +67,10 @@ public class AccountController {
 
         Account account = accountService.createNewAccount(modelMapper.map(accountForm, Account.class));
         WebMvcLinkBuilder selfLink = linkTo(AccountController.class).slash(account.getId());
+        WebMvcLinkBuilder slash = linkTo(AccountController.class).slash(account.getId());
         AccountResource accountResource = new AccountResource(account);
+        log.info("=========================");
+        log.info(slash.toString());
 
         return ResponseEntity.created(selfLink.toUri()).body(accountResource);
     }
