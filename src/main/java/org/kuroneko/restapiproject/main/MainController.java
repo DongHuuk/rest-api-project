@@ -27,7 +27,7 @@ public class MainController {
         Login = OAuth2 사용
      */
 
-    //TODO Principal를 현재 Account Domain으로 바로 받아올 수 있게 설정 및 인증 서버 OAuth2 설정해야 함.
+    //TODO Principal를 현재 Accouhent Domain으로 바로 받아올 수 있게 설정 및 인증 서버 OAuth2 설정해야 함.
     @GetMapping("/")
     public String index_get(Principal principal) {
         return "index_Get";

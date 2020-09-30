@@ -1,17 +1,22 @@
 package org.kuroneko.restapiproject.article;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
+import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 import org.kuroneko.restapiproject.domain.Account;
 import org.kuroneko.restapiproject.domain.ArticleThema;
 import org.kuroneko.restapiproject.domain.Comments;
+import org.springframework.hateoas.RepresentationModel;
 
 import javax.persistence.*;
 import java.time.LocalDateTime;
 import java.util.Set;
 
 @Data
-public class ArticleDTO {
+@NoArgsConstructor
+@AllArgsConstructor
+public class ArticleDTO extends RepresentationModel<ArticleDTO> {
 
     private Long number;
 
