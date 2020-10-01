@@ -34,6 +34,8 @@ import java.util.List;
 
 import static org.springframework.restdocs.headers.HeaderDocumentation.*;
 import static org.springframework.restdocs.headers.HeaderDocumentation.headerWithName;
+import static org.springframework.restdocs.hypermedia.HypermediaDocumentation.linkWithRel;
+import static org.springframework.restdocs.hypermedia.HypermediaDocumentation.links;
 import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.document;
 import static org.springframework.restdocs.payload.PayloadDocumentation.*;
 import static org.springframework.restdocs.payload.PayloadDocumentation.fieldWithPath;
@@ -96,11 +98,16 @@ public class AccountControllerTestWithComments extends AccountMethods{
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andDo(document("get-Account-Comments",
+                        links(
+                                linkWithRel("first").description("첫 페이지"),
+                                linkWithRel("next").description("다음 페이지"),
+                                linkWithRel("last").description("마지막 페이지"),
+                                linkWithRel("self").description("get Comments")
+                        ),
                         responseHeaders(
-                                headerWithName(HttpHeaders.LOCATION).description("Account Profile을 보여주는 Link"),
                                 headerWithName(HttpHeaders.CONTENT_TYPE).description("이 API에서는 JSON-HAL 지원한다.")
                         ),
-                        responseFields(beneathPath("content"),
+                        responseFields(beneathPath("_embedded.commentsDTOList"),
                                 fieldWithPath("number").description("댓글의 순번"),
                                 fieldWithPath("description").description("댓글의 내용"),
                                 fieldWithPath("createTime").description("댓글이 생성된 시간"),
@@ -111,15 +118,11 @@ public class AccountControllerTestWithComments extends AccountMethods{
                                 fieldWithPath("articleId").description("댓글이 속해있는 게시글의 identification"),
                                 fieldWithPath("articleNumber").description("댓글이 속해있는 게시글의 순번")
                         ),
-                        relaxedResponseFields(
-                                fieldWithPath("last").description("끝 페이지인가에 대한 여부"),
-                                fieldWithPath("totalPages").description("총 페이시 수"),
-                                fieldWithPath("totalElements").description("페이지의 요소들의 총 갯수"),
-                                fieldWithPath("size").description("페이지 내에 존재하는 최대 요소들의 갯수"),
-                                fieldWithPath("first").description("첫 페이지인가에 대한 여부"),
-                                fieldWithPath("number").description("현재 페이지 번호"),
-                                fieldWithPath("sort.sorted").description("정렬의 적용 여부"),
-                                fieldWithPath("empty").description("리스트가 비어있는지의 여부")
+                        responseFields(beneathPath("page"),
+                                fieldWithPath("size").description("한 페이지의 최대 갯수"),
+                                fieldWithPath("totalElements").description("총 게시글 수"),
+                                fieldWithPath("totalPages").description("총 page 수"),
+                                fieldWithPath("number").description("현재 페이지")
                         )
                 ));
     }
@@ -184,50 +187,13 @@ public class AccountControllerTestWithComments extends AccountMethods{
                 .with(csrf()))
                 .andDo(print())
                 .andExpect(status().is3xxRedirection())
-                .andDo(document("delete-comments",
+                .andDo(document("delete-Account-Comments",
                         requestHeaders(
-                                headerWithName(HttpHeaders.CONTENT_TYPE).description("content Type")
+                                headerWithName(HttpHeaders.CONTENT_TYPE).description("AJAX로 Json 타입의 숫자 + ','의 값을 보낸다. ex) 1, 3, 5")
                         ),
                         responseHeaders(
-                                headerWithName(HttpHeaders.CONTENT_TYPE).description("이 API에서는 JSON-HAL 지원한다.")
-                        ),
-                        relaxedResponseFields(
-                                fieldWithPath("id").type(JsonFieldType.NUMBER).description("계정의 identification"),
-                                fieldWithPath("username").description("계정의 닉네임"),
-                                fieldWithPath("email").description("계정의 아이디(로그인에 사용)"),
-                                fieldWithPath("createTime").description("계정의 생성 일자"),
-                                fieldWithPath("updateTime").description("계정의 갱신 일자"),
-                                fieldWithPath("authority").description("계정의 접근 권한"),
-                                fieldWithPath("article").description("계정이 작성한 게시글 목록들"),
-                                fieldWithPath("comments").description("계정이 작성한 댓글 목록들"),
-                                fieldWithPath("notification").description("계정의 알림들"),
-                                fieldWithPath("_links.self.href").description("Account 개인 설정화면으로 이동 할 수 있는 Link"),
-                                fieldWithPath("_links.getComments.href").description("Account의 Comments를 받을 수 있는 Link")
+                                headerWithName(HttpHeaders.LOCATION).description("Redirect URL")
                         )
-//                        relaxedResponseFields(beneathPath("article"),
-//                                fieldWithPath("id").description("게시글의 identification"),
-//                                fieldWithPath("number").description("게시글의 순번"),
-//                                fieldWithPath("title").description("게시글의 제목"),
-//                                fieldWithPath("description").description("게시글의 내용"),
-//                                fieldWithPath("source").description("게시글에 첨부파일 등이 있다면 그에 대한 출처 정보"),
-//                                fieldWithPath("division").description("게시글의 글 유형"),
-//                                fieldWithPath("createTime").description("게시글이 생성된 시간"),
-//                                fieldWithPath("updateTime").description("게시글이 수정된 시간"),
-//                                fieldWithPath("comments").description("게시글의 댓글들"),
-//                                fieldWithPath("report").description("게시글의 신고 횟수")
-//                        )
-//                        relaxedResponseFields(beneathPath("comments"),
-//                                fieldWithPath("id").description("댓글의 identification"),
-//                                fieldWithPath("number").description("댓글의 순번"),
-//                                fieldWithPath("description").description("댓글의 내용"),
-//                                fieldWithPath("createTime").description("댓글이 생성된 시간"),
-//                                fieldWithPath("agree").description("댓글의 추천 수"),
-//                                fieldWithPath("disagree").description("댓글의 비추천 수"),
-//                                fieldWithPath("report").description("댓글의 신고 수"),
-//                                fieldWithPath("originNo").description("댓글 위치 값(순서)"),
-//                                fieldWithPath("groupOrd").description("댓글과 답글의 구분")
-//                        )
-
                 ));
     }
 

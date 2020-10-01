@@ -28,6 +28,8 @@ import java.util.List;
 
 import static org.springframework.restdocs.headers.HeaderDocumentation.*;
 import static org.springframework.restdocs.headers.HeaderDocumentation.headerWithName;
+import static org.springframework.restdocs.hypermedia.HypermediaDocumentation.linkWithRel;
+import static org.springframework.restdocs.hypermedia.HypermediaDocumentation.links;
 import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.document;
 import static org.springframework.restdocs.payload.PayloadDocumentation.*;
 import static org.springframework.restdocs.payload.PayloadDocumentation.fieldWithPath;
@@ -76,13 +78,14 @@ public class AccountControllerTestWithNotification extends AccountMethods{
         this.mockMvc.perform(get("/accounts/{id}/notification", account.getId()))
                 .andDo(print())
                 .andExpect(status().isOk())
-                .andExpect(header().exists("Location"))
-                .andDo(document("get-Account-Article",
-                        responseHeaders(
-                                headerWithName(HttpHeaders.CONTENT_TYPE).description("이 API에서는 JSON-HAL 지원한다."),
-                                headerWithName(HttpHeaders.LOCATION).description("이 계정의 프로필 URL")
+                .andDo(document("get-Account-Notification",
+                        links(
+                             linkWithRel("self").description("get Notifications")
                         ),
-                        responseFields(beneathPath("content"),
+                        responseHeaders(
+                                headerWithName(HttpHeaders.CONTENT_TYPE).description("이 API에서는 JSON-HAL 지원한다.")
+                        ),
+                        responseFields(beneathPath("_embedded.notificationDTOList"),
                                 fieldWithPath("id").description("알림의 ID"),
                                 fieldWithPath("number").description("일림의 순번"),
                                 fieldWithPath("createTime").description("알림이 생성된 시간"),
@@ -95,21 +98,11 @@ public class AccountControllerTestWithNotification extends AccountMethods{
                                 fieldWithPath("commentsId").description("알림이 가리키고 있는 Comments 순번"),
                                 fieldWithPath("commentsNumber").description("알림이 가리키고 있는 Comments 순번")
                         ),
-                        relaxedResponseFields(beneathPath("pageable"),
-                                fieldWithPath("sort").description("페이징의 정렬"),
-                                fieldWithPath("offset").description("페이지 출발 값"),
-                                fieldWithPath("pageNumber").description("현재 페이지 번호"),
-                                fieldWithPath("pageSize").description("한 페이지에서 표시 가능한 숫자")
-                        ),
-                        relaxedResponseFields(
-                                fieldWithPath("last").description("마지막 페이지인지에 대한 여부"),
-                                fieldWithPath("totalPages").description("총 페이지 수"),
-                                fieldWithPath("totalElements").description("총 게시글의 갯수"),
-                                fieldWithPath("size").description("한 페이지에 보여줄 수 있는 게시글의 수"),
-                                fieldWithPath("number").description("현재 페이지 번호"),
-                                fieldWithPath("sort.sorted").description("정렬의 여부"),
-                                fieldWithPath("first").description("첫 페이지 여부"),
-                                fieldWithPath("empty").description("리스트가 비어있는지의 여부")
+                        responseFields(beneathPath("page"),
+                                fieldWithPath("size").description("한 페이지의 최대 갯수"),
+                                fieldWithPath("totalElements").description("총 게시글 수"),
+                                fieldWithPath("totalPages").description("총 page 수"),
+                                fieldWithPath("number").description("현재 페이지")
                         )
 
                 ));
@@ -179,25 +172,12 @@ public class AccountControllerTestWithNotification extends AccountMethods{
                 .with(csrf()))
                 .andDo(print())
                 .andExpect(status().is3xxRedirection())
-                .andDo(document("delete-notification",
+                .andDo(document("delete-Account-Notification",
                         requestHeaders(
                                 headerWithName(HttpHeaders.CONTENT_TYPE).description("Json 타입의 숫자 + ','의 값을 보낸다. ex) 1, 3, 5")
                         ),
                         responseHeaders(
-                                headerWithName(HttpHeaders.CONTENT_TYPE).description("이 API에서는 JSON-HAL 지원한다.")
-                        ),
-                        relaxedResponseFields(
-                                fieldWithPath("id").type(JsonFieldType.NUMBER).description("계정의 identification"),
-                                fieldWithPath("username").description("계정의 닉네임"),
-                                fieldWithPath("email").description("계정의 아이디(로그인에 사용)"),
-                                fieldWithPath("createTime").description("계정의 생성 일자"),
-                                fieldWithPath("updateTime").description("계정의 갱신 일자"),
-                                fieldWithPath("authority").description("계정의 접근 권한"),
-                                fieldWithPath("article").description("계정이 작성한 게시글 목록들"),
-                                fieldWithPath("comments").description("계정이 작성한 댓글 목록들"),
-                                fieldWithPath("notification").description("계정의 알림들"),
-                                fieldWithPath("_links.self.href").description("Account 개인 설정화면으로 이동 할 수 있는 Link"),
-                                fieldWithPath("_links.getNotification.href").description("Account의 알림들을 보여주는 get Link")
+                                headerWithName(HttpHeaders.LOCATION).description("Redirect URL")
                         )
                 ));
     }
