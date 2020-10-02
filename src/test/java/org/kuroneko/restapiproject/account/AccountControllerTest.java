@@ -77,6 +77,13 @@ class AccountControllerTest extends AccountMethods{
                 .andDo(print())
                 .andExpect(status().isCreated())
                 .andDo(document("create-Account",
+                    links(
+                            linkWithRel("Account Profile").description("Account's Profile"),
+                            linkWithRel("get Articles").description("Account's find Articles"),
+                            linkWithRel("get Comments").description("Account's find Comments"),
+                            linkWithRel("get Notification").description("Account's find Notification"),
+                            linkWithRel("DOCS").description("REST API DOCS")
+                    ),
                     requestHeaders(
                             headerWithName(HttpHeaders.CONTENT_TYPE).description("이 API에서는 JSON을 지원한다."),
                             headerWithName(HttpHeaders.ACCEPT).description("이 API에서는 HAL을 지원한다.")
@@ -86,26 +93,9 @@ class AccountControllerTest extends AccountMethods{
                             fieldWithPath("email").description("생성할 계정의 아이디(로그인시 사용), 특수문자는 허용하지 않는다."),
                             fieldWithPath("password").description("생성할 계정의 비밀번호 8-12자, 문자 규칙은 없다."),
                             fieldWithPath("checkingPassword").description("생성할 계정의 비밀번호를 확인 할 비밀번호.")
-                    ),
-                    responseHeaders(
-                            headerWithName(HttpHeaders.LOCATION).description("생성한 계정을 Profile 화면으로 갈 수 있는 링크")
                     )
                 ));
     }
-    /*
-        relaxedResponseFields(
-                fieldWithPath("id").description("계정의 identification"),
-                fieldWithPath("username").description("계정의 닉네임"),
-                fieldWithPath("email").description("계정의 아이디(로그인에 사용)"),
-                fieldWithPath("createTime").description("계정의 생성 일자"),
-                fieldWithPath("updateTime").description("계정의 갱신 일자"),
-                fieldWithPath("authority").description("계정의 접근 권한"),
-                fieldWithPath("article").description("계정이 작성한 게시글 목록들"),
-                fieldWithPath("comments").description("계정이 작성한 댓글 목록들"),
-                fieldWithPath("notification").description("계정의 알림들"),
-                fieldWithPath("_links.self.href").description("생성한 Account 개인 설정화면으로 이동 할 수 있는 Link")
-        )
-     */
 
     @Test
     @DisplayName("Account 생성 실패_415 error(MediaType 미지원)")
@@ -186,27 +176,17 @@ class AccountControllerTest extends AccountMethods{
                 .andExpect(status().isOk())
                 .andDo(document("get-Account",
                         links(
-                                linkWithRel("self").description("해당 Account Profile로 갈 수 있는 link"),
-                                linkWithRel("main").description("index page로 이동할 수 있는 main link"),
-                                linkWithRel("accounts Articles").description("해당 Account의 Articles(게시글)을 받을 수 있는 link"),
-                                linkWithRel("accounts Comments").description("해당 Account의 Comments(댓글)을 받을 수 있는 link")
+                                linkWithRel("Account Profile").description("Account Profile"),
+                                linkWithRel("get Articles").description("Account's get Articles"),
+                                linkWithRel("get Comments").description("Account's get Comments"),
+                                linkWithRel("get Notification").description("Account's get Notification"),
+                                linkWithRel("DOCS").description("REST API DOCS")
                         ),
                         requestHeaders(
                                 headerWithName(HttpHeaders.ACCEPT).description("이 API에서는 HAL을 지원한다.")
                         ),
                         responseHeaders(
                                 headerWithName(HttpHeaders.CONTENT_TYPE).description("이 API는 hal+json을 지원한다.")
-                        ),
-                        relaxedResponseFields(
-                                fieldWithPath("id").description("계정의 identification"),
-                                fieldWithPath("username").description("계정의 닉네임"),
-                                fieldWithPath("email").description("계정의 아이디(로그인에 사용)"),
-                                fieldWithPath("createTime").description("계정의 생성 일자"),
-                                fieldWithPath("updateTime").description("계정의 갱신 일자"),
-                                fieldWithPath("authority").description("계정의 접근 권한"),
-                                fieldWithPath("article").description("계정이 작성한 게시글 목록들"),
-                                fieldWithPath("comments").description("계정이 작성한 댓글 목록들"),
-                                fieldWithPath("notification").description("계정의 알림들")
                         )
                     ));
     }
@@ -249,7 +229,7 @@ class AccountControllerTest extends AccountMethods{
                 .content(objectMapper.writeValueAsString(accountForm))
                 .with(csrf()))
                 .andDo(print())
-                .andExpect(status().is3xxRedirection())
+                .andExpect(status().isCreated())
                 .andDo(document("update-Account",
                         requestHeaders(
                                 headerWithName(HttpHeaders.CONTENT_TYPE).description("이 API는 json 타입의 요청을 받는다"),
@@ -260,9 +240,6 @@ class AccountControllerTest extends AccountMethods{
                                 fieldWithPath("email").description("수정을 원하는 값을 입력한다."),
                                 fieldWithPath("password").description("수정을 원하는 값을 입력한다."),
                                 fieldWithPath("checkingPassword").description("입력한 Password를 다시한번 입력한다.")
-                        ),
-                        responseHeaders(
-                                headerWithName(HttpHeaders.LOCATION).description("Redirect URL")
                         )
                     ));
 
@@ -335,7 +312,7 @@ class AccountControllerTest extends AccountMethods{
                 .content(objectMapper.writeValueAsString(accountForm))
                 .with(csrf()))
                 .andDo(print())
-                .andExpect(status().is3xxRedirection())
+                .andExpect(status().isNoContent())
                 .andDo(document("delete-Account",
                         requestHeaders(
                                 headerWithName(HttpHeaders.CONTENT_TYPE).description("이 API에서는 JSON을 지원한다.")

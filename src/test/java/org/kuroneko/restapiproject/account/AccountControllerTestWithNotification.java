@@ -80,7 +80,11 @@ public class AccountControllerTestWithNotification extends AccountMethods{
                 .andExpect(status().isOk())
                 .andDo(document("get-Account-Notification",
                         links(
-                             linkWithRel("self").description("get Notifications")
+                            linkWithRel("self").description("Account Profile"),
+                            linkWithRel("get Articles").description("Account's get Articles"),
+                            linkWithRel("get Comments").description("Account's get Comments"),
+                            linkWithRel("get Notification").description("Account's get Notification"),
+                            linkWithRel("DOCS").description("REST API DOCS")
                         ),
                         responseHeaders(
                                 headerWithName(HttpHeaders.CONTENT_TYPE).description("이 API에서는 JSON-HAL 지원한다.")
@@ -171,7 +175,7 @@ public class AccountControllerTestWithNotification extends AccountMethods{
                 .content(str)
                 .with(csrf()))
                 .andDo(print())
-                .andExpect(status().is3xxRedirection())
+                .andExpect(status().isNoContent())
                 .andDo(document("delete-Account-Notification",
                         requestHeaders(
                                 headerWithName(HttpHeaders.CONTENT_TYPE).description("Json 타입의 숫자 + ','의 값을 보낸다. ex) 1, 3, 5")

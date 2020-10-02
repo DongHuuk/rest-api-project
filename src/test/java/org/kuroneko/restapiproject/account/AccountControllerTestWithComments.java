@@ -102,7 +102,11 @@ public class AccountControllerTestWithComments extends AccountMethods{
                                 linkWithRel("first").description("첫 페이지"),
                                 linkWithRel("next").description("다음 페이지"),
                                 linkWithRel("last").description("마지막 페이지"),
-                                linkWithRel("self").description("get Comments")
+                                linkWithRel("self").description("Account Profile"),
+                                linkWithRel("get Articles").description("Account's get Articles"),
+                                linkWithRel("get Comments").description("Account's get Comments"),
+                                linkWithRel("get Notification").description("Account's get Notification"),
+                                linkWithRel("DOCS").description("REST API DOCS")
                         ),
                         responseHeaders(
                                 headerWithName(HttpHeaders.CONTENT_TYPE).description("이 API에서는 JSON-HAL 지원한다.")
@@ -186,7 +190,7 @@ public class AccountControllerTestWithComments extends AccountMethods{
                 .content(str)
                 .with(csrf()))
                 .andDo(print())
-                .andExpect(status().is3xxRedirection())
+                .andExpect(status().isNoContent())
                 .andDo(document("delete-Account-Comments",
                         requestHeaders(
                                 headerWithName(HttpHeaders.CONTENT_TYPE).description("AJAX로 Json 타입의 숫자 + ','의 값을 보낸다. ex) 1, 3, 5")

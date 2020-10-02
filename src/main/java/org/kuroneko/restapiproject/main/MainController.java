@@ -42,12 +42,4 @@ public class MainController {
     public RedirectView reIndex(){
         return new RedirectView("/");
     }
-
-    //추후에 Event를 설명하는 index 페이지를 따로 만들어서 그쪽을 가리키게끔 만드는 것
-    @GetMapping("/api")
-    public RepresentationModel apiIndex(){
-
-        return getIndexLink();
-    }
-
 }
