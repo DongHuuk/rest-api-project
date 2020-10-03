@@ -4,12 +4,12 @@ import javassist.NotFoundException;
 import lombok.extern.slf4j.Slf4j;
 import org.kuroneko.restapiproject.account.validation.AccountPasswordValidation;
 import org.kuroneko.restapiproject.account.validation.AccountValidation;
-import org.kuroneko.restapiproject.article.ArticleDTO;
-import org.kuroneko.restapiproject.article.ArticleForm;
+import org.kuroneko.restapiproject.article.domain.ArticleDTO;
+import org.kuroneko.restapiproject.article.domain.ArticleForm;
 import org.kuroneko.restapiproject.comments.CommentsDTO;
-import org.kuroneko.restapiproject.domain.Account;
-import org.kuroneko.restapiproject.domain.AccountForm;
-import org.kuroneko.restapiproject.domain.AccountPasswordForm;
+import org.kuroneko.restapiproject.account.domain.Account;
+import org.kuroneko.restapiproject.account.domain.AccountForm;
+import org.kuroneko.restapiproject.account.domain.AccountPasswordForm;
 import org.kuroneko.restapiproject.errors.ErrorsResource;
 import org.kuroneko.restapiproject.main.MainController;
 import org.kuroneko.restapiproject.notification.NotificationDTO;
@@ -97,7 +97,7 @@ public class AccountController {
         return accountResource;
     }
 
-    @PostMapping("/create")
+    @PostMapping
     public ResponseEntity createAccount(@RequestBody @Valid AccountForm accountForm, Errors errors){
         if (errors.hasErrors()) {
             return badRequest(errors);
@@ -202,16 +202,6 @@ public class AccountController {
         getArticles.add(this.getDOSCURL("/docs/index.html#resources-Account-article-get"));
 
         return new ResponseEntity(getArticles, HttpStatus.OK);
-    }
-
-    @PostMapping("/{id}/articles")
-    public ResponseEntity createAccountsArticles(@CurrentAccount Account account, @PathVariable Long id,
-                                                 @RequestBody ArticleForm articleForm) {
-
-        HttpHeaders httpHeaders = new HttpHeaders();
-        httpHeaders.setLocation(linkTo(AccountController.class).slash(id + "/articles").toUri());
-
-        return new ResponseEntity(httpHeaders, HttpStatus.CREATED);
     }
 
     //checked 방식을 어떻게 할것인가. Ajax로 checked된 값을 ","로 구분하여 JSON으로 전송

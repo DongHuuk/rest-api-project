@@ -1,7 +1,10 @@
-package org.kuroneko.restapiproject.domain;
+package org.kuroneko.restapiproject.notification.domain;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import lombok.*;
+import org.kuroneko.restapiproject.account.domain.Account;
+import org.kuroneko.restapiproject.article.domain.Article;
+import org.kuroneko.restapiproject.comments.domain.Comments;
 
 import javax.persistence.*;
 import java.time.LocalDateTime;

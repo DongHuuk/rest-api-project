@@ -1,12 +1,9 @@
 package org.kuroneko.restapiproject.comments;
 
 import lombok.Data;
-import org.kuroneko.restapiproject.article.ArticleDTO;
-import org.kuroneko.restapiproject.domain.Article;
+import org.kuroneko.restapiproject.article.domain.ArticleDTO;
 import org.springframework.hateoas.RepresentationModel;
 
-import javax.persistence.FetchType;
-import javax.persistence.ManyToOne;
 import java.time.LocalDateTime;
 
 @Data

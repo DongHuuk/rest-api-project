@@ -1,7 +1,7 @@
 package org.kuroneko.restapiproject.comments;
 
 import com.querydsl.jpa.JPQLQuery;
-import org.kuroneko.restapiproject.domain.Comments;
+import org.kuroneko.restapiproject.comments.domain.Comments;
 import org.kuroneko.restapiproject.domain.QComments;
 import org.springframework.data.jpa.repository.support.QuerydslRepositorySupport;
 

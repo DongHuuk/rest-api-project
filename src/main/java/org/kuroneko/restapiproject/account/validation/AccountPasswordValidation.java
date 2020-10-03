@@ -1,8 +1,7 @@
 package org.kuroneko.restapiproject.account.validation;
 
 import org.kuroneko.restapiproject.account.AccountRepository;
-import org.kuroneko.restapiproject.domain.AccountForm;
-import org.kuroneko.restapiproject.domain.AccountPasswordForm;
+import org.kuroneko.restapiproject.account.domain.AccountPasswordForm;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.validation.Errors;

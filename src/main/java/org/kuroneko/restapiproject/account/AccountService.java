@@ -1,12 +1,17 @@
 package org.kuroneko.restapiproject.account;
 
 import javassist.NotFoundException;
-import org.kuroneko.restapiproject.article.ArticleDTO;
+import org.kuroneko.restapiproject.account.domain.Account;
+import org.kuroneko.restapiproject.account.domain.AccountForm;
+import org.kuroneko.restapiproject.account.domain.UserAuthority;
+import org.kuroneko.restapiproject.article.domain.Article;
+import org.kuroneko.restapiproject.article.domain.ArticleDTO;
 import org.kuroneko.restapiproject.comments.CommentsDTO;
 import org.kuroneko.restapiproject.comments.CommentsRepository;
-import org.kuroneko.restapiproject.domain.*;
+import org.kuroneko.restapiproject.comments.domain.Comments;
 import org.kuroneko.restapiproject.notification.NotificationDTO;
 import org.kuroneko.restapiproject.notification.NotificationRepository;
+import org.kuroneko.restapiproject.notification.domain.Notification;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -16,7 +21,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.Errors;
 
-import javax.security.auth.login.AccountNotFoundException;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;

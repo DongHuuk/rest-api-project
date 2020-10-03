@@ -1,7 +1,7 @@
 package org.kuroneko.restapiproject.account;
 
 import lombok.NoArgsConstructor;
-import org.kuroneko.restapiproject.domain.Account;
+import org.kuroneko.restapiproject.account.domain.Account;
 import org.springframework.hateoas.EntityModel;
 import org.springframework.hateoas.Link;
 import org.springframework.hateoas.server.mvc.WebMvcLinkBuilder;

@@ -1,6 +1,6 @@
 package org.kuroneko.restapiproject.account;
 
-import org.kuroneko.restapiproject.domain.Account;
+import org.kuroneko.restapiproject.account.domain.Account;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.querydsl.QuerydslPredicateExecutor;

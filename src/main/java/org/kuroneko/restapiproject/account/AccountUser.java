@@ -1,6 +1,6 @@
 package org.kuroneko.restapiproject.account;
 
-import org.kuroneko.restapiproject.domain.Account;
+import org.kuroneko.restapiproject.account.domain.Account;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.User;
 

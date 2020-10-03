@@ -1,15 +1,11 @@
-package org.kuroneko.restapiproject.article;
+package org.kuroneko.restapiproject.article.domain;
 
-import com.fasterxml.jackson.annotation.JsonBackReference;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.kuroneko.restapiproject.domain.Account;
-import org.kuroneko.restapiproject.domain.ArticleThema;
-import org.kuroneko.restapiproject.domain.Comments;
+import org.kuroneko.restapiproject.comments.domain.Comments;
 import org.springframework.hateoas.RepresentationModel;
 
-import javax.persistence.*;
 import java.time.LocalDateTime;
 import java.util.Set;
 

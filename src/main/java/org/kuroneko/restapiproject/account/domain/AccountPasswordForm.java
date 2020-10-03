@@ -1,27 +1,16 @@
-package org.kuroneko.restapiproject.domain;
+package org.kuroneko.restapiproject.account.domain;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.hibernate.validator.constraints.Length;
 
-import javax.persistence.Column;
-import javax.validation.constraints.Email;
 import javax.validation.constraints.NotEmpty;
-import javax.validation.constraints.Pattern;
 
-@Data @NoArgsConstructor @AllArgsConstructor
-public class AccountForm {
-
-    @Column(unique = true)
-    @NotEmpty
-    @Pattern(regexp = "^[ㄱ-ㅎ가-힣a-zA-Z0-9]{2,10}$", message = "can't be used characters yours. Please check your username.")
-    private String username;
-
-    @Email(message = "Please check your email. is not Email Type")
-    @NotEmpty
-    @Column(unique = true)
-    private String email;
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class AccountPasswordForm {
 
     @NotEmpty
     @Length(min = 8, max = 12, message = "can't be used characters yours. Please check your password.")
@@ -34,5 +23,4 @@ public class AccountForm {
     public boolean checkedPassword() {
         return this.password.equals(checkingPassword);
     }
-
 }

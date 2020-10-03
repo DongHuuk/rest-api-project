@@ -1,20 +1,18 @@
 package org.kuroneko.restapiproject.account;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.kuroneko.restapiproject.RestDocsConfiguration;
-import org.kuroneko.restapiproject.article.ArticleForm;
+import org.kuroneko.restapiproject.account.domain.Account;
+import org.kuroneko.restapiproject.account.domain.AccountForm;
+import org.kuroneko.restapiproject.account.domain.AccountPasswordForm;
 import org.kuroneko.restapiproject.article.ArticleRepository;
-import org.kuroneko.restapiproject.comments.CommentsForm;
 import org.kuroneko.restapiproject.comments.CommentsRepository;
 import org.kuroneko.restapiproject.config.WithAccount;
-import org.kuroneko.restapiproject.domain.*;
 import org.kuroneko.restapiproject.notification.NotificationRepository;
-import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.restdocs.AutoConfigureRestDocs;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -23,14 +21,8 @@ import org.springframework.context.annotation.Import;
 import org.springframework.hateoas.MediaTypes;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
-import org.springframework.restdocs.payload.JsonFieldType;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.transaction.annotation.Transactional;
-
-import java.time.LocalDateTime;
-import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
@@ -69,7 +61,7 @@ class AccountControllerTest extends AccountMethods{
     @Test
     @DisplayName("Account 생성 - 201")
     public void createAccount_201() throws Exception {
-        this.mockMvc.perform(post("/accounts/create")
+        this.mockMvc.perform(post("/accounts")
                 .contentType(MediaType.APPLICATION_JSON)
                 .accept(MediaTypes.HAL_JSON)
                 .content(objectMapper.writeValueAsString(createAccountForm()))
@@ -100,7 +92,7 @@ class AccountControllerTest extends AccountMethods{
     @Test
     @DisplayName("Account 생성 실패_415 error(MediaType 미지원)")
     public void createAccount_415_error() throws Exception{
-        this.mockMvc.perform(post("/accounts/create")
+        this.mockMvc.perform(post("/accounts")
                 .contentType(MediaType.MULTIPART_FORM_DATA)
                 .accept(MediaTypes.HAL_JSON)
                 .param("username", "흑우냥이")
@@ -118,7 +110,7 @@ class AccountControllerTest extends AccountMethods{
         AccountForm accountForm = createAccountForm();
         accountForm.setPassword("123456");
 
-        this.mockMvc.perform(post("/accounts/create")
+        this.mockMvc.perform(post("/accounts")
                 .contentType(MediaType.APPLICATION_JSON)
                 .accept(MediaTypes.HAL_JSON)
                 .content(objectMapper.writeValueAsString(accountForm))
@@ -135,7 +127,7 @@ class AccountControllerTest extends AccountMethods{
         saveAccount(accountForm);
         accountForm.setUsername("테스트1");
 
-        this.mockMvc.perform(post("/accounts/create")
+        this.mockMvc.perform(post("/accounts")
                 .contentType(MediaType.APPLICATION_JSON)
                 .accept(MediaTypes.HAL_JSON)
                 .content(objectMapper.writeValueAsString(accountForm))
@@ -153,7 +145,7 @@ class AccountControllerTest extends AccountMethods{
         saveAccount(accountForm);
         accountForm.setEmail("test2@gmail.com");
 
-        this.mockMvc.perform(post("/accounts/create")
+        this.mockMvc.perform(post("/accounts")
                 .contentType(MediaType.APPLICATION_JSON)
                 .accept(MediaTypes.HAL_JSON)
                 .content(objectMapper.writeValueAsString(accountForm))

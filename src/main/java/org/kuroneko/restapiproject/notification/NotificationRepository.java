@@ -1,6 +1,6 @@
 package org.kuroneko.restapiproject.notification;
 
-import org.kuroneko.restapiproject.domain.Notification;
+import org.kuroneko.restapiproject.notification.domain.Notification;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;

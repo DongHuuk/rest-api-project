@@ -1,8 +1,11 @@
-package org.kuroneko.restapiproject.domain;
+package org.kuroneko.restapiproject.account.domain;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import lombok.*;
+import org.kuroneko.restapiproject.article.domain.Article;
+import org.kuroneko.restapiproject.comments.domain.Comments;
+import org.kuroneko.restapiproject.notification.domain.Notification;
 
 import javax.persistence.*;
 import java.time.LocalDateTime;
@@ -33,7 +36,7 @@ public class Account {
     private LocalDateTime updateTime;
 
     @Enumerated(EnumType.STRING)
-    private UserAuthority authority;
+    private UserAuthority authority = UserAuthority.USER;
 
     @OneToMany(mappedBy = "account", fetch = FetchType.LAZY)
     @JsonManagedReference

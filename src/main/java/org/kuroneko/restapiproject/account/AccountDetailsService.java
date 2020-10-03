@@ -1,6 +1,6 @@
 package org.kuroneko.restapiproject.account;
 
-import org.kuroneko.restapiproject.domain.Account;
+import org.kuroneko.restapiproject.account.domain.Account;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;

@@ -1,6 +1,6 @@
 package org.kuroneko.restapiproject.comments;
 
-import org.kuroneko.restapiproject.domain.Comments;
+import org.kuroneko.restapiproject.comments.domain.Comments;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;

@@ -1,12 +1,18 @@
 package org.kuroneko.restapiproject.account;
 
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.kuroneko.restapiproject.article.ArticleForm;
+import org.kuroneko.restapiproject.account.domain.Account;
+import org.kuroneko.restapiproject.account.domain.AccountForm;
+import org.kuroneko.restapiproject.account.domain.UserAuthority;
+import org.kuroneko.restapiproject.article.domain.Article;
+import org.kuroneko.restapiproject.article.domain.ArticleForm;
 import org.kuroneko.restapiproject.article.ArticleRepository;
+import org.kuroneko.restapiproject.article.domain.ArticleThema;
 import org.kuroneko.restapiproject.comments.CommentsForm;
 import org.kuroneko.restapiproject.comments.CommentsRepository;
-import org.kuroneko.restapiproject.domain.*;
+import org.kuroneko.restapiproject.comments.domain.Comments;
 import org.kuroneko.restapiproject.notification.NotificationRepository;
+import org.kuroneko.restapiproject.notification.domain.Notification;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;

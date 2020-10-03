@@ -3,7 +3,7 @@ package org.kuroneko.restapiproject.config;
 import org.kuroneko.restapiproject.account.AccountDetailsService;
 import org.kuroneko.restapiproject.account.AccountRepository;
 import org.kuroneko.restapiproject.account.AccountService;
-import org.kuroneko.restapiproject.domain.Account;
+import org.kuroneko.restapiproject.account.domain.Account;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
