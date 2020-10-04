@@ -16,8 +16,8 @@ import java.util.Set;
 @NoArgsConstructor
 public class Community {
 
-    @Id
-    private String id;
+    @Id @GeneratedValue
+    private Long id;
 
     private String title;
 

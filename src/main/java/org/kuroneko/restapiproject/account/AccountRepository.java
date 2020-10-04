@@ -21,4 +21,6 @@ public interface AccountRepository extends JpaRepository<Account, Long>, Queryds
 
     @EntityGraph(attributePaths = {"notification"}, type = EntityGraph.EntityGraphType.LOAD)
     Account findAccountWithNotificationById(Long id);
+
+    Optional<Account> findByUsername(String userName);
 }

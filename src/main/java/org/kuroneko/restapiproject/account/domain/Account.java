@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonManagedReference;
 import lombok.*;
 import org.kuroneko.restapiproject.article.domain.Article;
 import org.kuroneko.restapiproject.comments.domain.Comments;
+import org.kuroneko.restapiproject.community.domain.Community;
 import org.kuroneko.restapiproject.notification.domain.Notification;
 
 import javax.persistence.*;
@@ -45,6 +46,10 @@ public class Account {
     @OneToMany(mappedBy = "account", fetch = FetchType.LAZY)
     @JsonManagedReference
     private Set<Comments> comments = new HashSet<>();
+
+    @OneToMany(mappedBy = "manager", fetch = FetchType.LAZY)
+    @JsonManagedReference
+    private Set<Community> communities = new HashSet<>();
 
     @OneToMany(mappedBy = "account")
     @JsonManagedReference

@@ -118,7 +118,7 @@ public class AccountController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity sendAccount(@PathVariable Long id, @CurrentAccount Account account) {
+    public ResponseEntity findAccount(@PathVariable Long id, @CurrentAccount Account account) {
         if (account == null) {
             return ResponseEntity.status(401).build();
         }

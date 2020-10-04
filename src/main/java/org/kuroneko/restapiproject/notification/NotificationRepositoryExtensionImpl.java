@@ -2,7 +2,7 @@ package org.kuroneko.restapiproject.notification;
 
 import com.querydsl.jpa.JPQLQuery;
 import org.kuroneko.restapiproject.notification.domain.Notification;
-import org.kuroneko.restapiproject.domain.QNotification;
+import org.kuroneko.restapiproject.notification.domain.QNotification;
 import org.springframework.data.jpa.repository.support.QuerydslRepositorySupport;
 
 import java.util.List;

@@ -2,7 +2,7 @@ package org.kuroneko.restapiproject.article;
 
 import com.querydsl.jpa.JPQLQuery;
 import org.kuroneko.restapiproject.article.domain.Article;
-import org.kuroneko.restapiproject.domain.QArticle;
+import org.kuroneko.restapiproject.article.domain.QArticle;
 import org.springframework.data.jpa.repository.support.QuerydslRepositorySupport;
 
 import java.util.List;
