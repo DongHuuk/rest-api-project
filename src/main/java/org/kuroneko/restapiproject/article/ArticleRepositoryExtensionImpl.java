@@ -1,8 +1,14 @@
 package org.kuroneko.restapiproject.article;
 
+import com.querydsl.core.QueryResults;
 import com.querydsl.jpa.JPQLQuery;
 import org.kuroneko.restapiproject.article.domain.Article;
 import org.kuroneko.restapiproject.article.domain.QArticle;
+import org.kuroneko.restapiproject.community.domain.Community;
+import org.kuroneko.restapiproject.community.domain.QCommunity;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.support.QuerydslRepositorySupport;
 
 import java.util.List;
@@ -22,6 +28,19 @@ public class ArticleRepositoryExtensionImpl extends QuerydslRepositorySupport im
         }
 
         return articleJPQLQuery.fetch();
+    }
+
+    @Override
+    public Page<Article> findByCommunityWithPageable(Community iCommunity, Pageable pageable) {
+        QArticle article = QArticle.article;
+        QueryResults<Article> articleQueryResults = from(article)
+                .where(article.community.eq(iCommunity))
+                .offset(pageable.getOffset())
+                .orderBy(article.createTime.desc())
+                .limit(pageable.getPageSize())
+                .fetchResults();
+
+        return new PageImpl<>(articleQueryResults.getResults(), pageable, articleQueryResults.getTotal());
     }
 
     private JPQLQuery<Article> getCommentsQuery(int size, List<Long> list){

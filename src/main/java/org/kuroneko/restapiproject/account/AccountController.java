@@ -68,32 +68,41 @@ public class AccountController {
         return ResponseEntity.badRequest().body(new ErrorsResource(errors));
     }
 
-    private Link getAccountProfile(){
-        return linkTo(AccountController.class).slash("AccountId").withRel("Account Profile").withType("JSON");
+    private Link getAccountProfile(Long id){
+        return linkTo(AccountController.class).slash(id).withRel("Account Profile").withType("JSON");
     }
 
-    private Link getAccountArticles(){
-        return linkTo(AccountController.class).slash("AccountId/articles").withRel("get Articles").withType("JSON");
+    private Link getAccountArticles(Long id){
+        return linkTo(AccountController.class).slash(id + "/articles").withRel("get Articles").withType("JSON");
     }
 
-    private Link getAccountComments(){
-        return linkTo(AccountController.class).slash("AccountId/comments").withRel("get Comments").withType("JSON");
+    private Link getAccountComments(Long id){
+        return linkTo(AccountController.class).slash(id + "/comments").withRel("get Comments").withType("JSON");
     }
 
-    private Link getAccountNotification(){
-        return linkTo(AccountController.class).slash("AccountId/notification").withRel("get Notification").withType("JSON");
+    private Link getAccountNotification(Long id){
+        return linkTo(AccountController.class).slash(id + "/notification").withRel("get Notification").withType("JSON");
     }
 
     private Link getDOSCURL(String url){
         return Link.of("http://" + host + url).withRel("DOCS").withType("JSON");
     }
 
-    private AccountResource createAccountResource(){
+    private AccountResource createAccountResource(Account account, Long id){
+        AccountResource accountResource = new AccountResource(account);
+        accountResource.add(this.getAccountProfile(id));
+        accountResource.add(this.getAccountArticles(id));
+        accountResource.add(this.getAccountComments(id));
+        accountResource.add(this.getAccountNotification(id));
+        return accountResource;
+    }
+
+    private AccountResource createAccountResource(Long id){
         AccountResource accountResource = new AccountResource();
-        accountResource.add(this.getAccountProfile());
-        accountResource.add(this.getAccountArticles());
-        accountResource.add(this.getAccountComments());
-        accountResource.add(this.getAccountNotification());
+        accountResource.add(this.getAccountProfile(id));
+        accountResource.add(this.getAccountArticles(id));
+        accountResource.add(this.getAccountComments(id));
+        accountResource.add(this.getAccountNotification(id));
         return accountResource;
     }
 
@@ -109,9 +118,9 @@ public class AccountController {
             return badRequest(errors);
         }
 
-        accountService.createNewAccount(modelMapper.map(accountForm, Account.class));
+        Account newAccount = accountService.createNewAccount(modelMapper.map(accountForm, Account.class));
 
-        AccountResource accountResource = this.createAccountResource();
+        AccountResource accountResource = this.createAccountResource(newAccount.getId());
         accountResource.add(this.getDOSCURL("/docs/index.html#resources-account-create"));
 
         return new ResponseEntity(accountResource, HttpStatus.CREATED);
@@ -130,7 +139,7 @@ public class AccountController {
         }
 
         Account newAccount = byId.get();
-        AccountResource accountResource = this.createAccountResource();
+        AccountResource accountResource = this.createAccountResource(newAccount, newAccount.getId());
         accountResource.add(this.getDOSCURL("/docs/index.html#resources-account-get"));
 
         return new ResponseEntity(accountResource, HttpStatus.OK);
@@ -156,7 +165,7 @@ public class AccountController {
 
         modelMapper.map(accountForm, account);
 
-        AccountResource accountResource = this.createAccountResource();
+        AccountResource accountResource = this.createAccountResource(account.getId());
         accountResource.add(this.getDOSCURL("/docs/index.html#resources-account-update"));
 
         return new ResponseEntity(accountResource, HttpStatus.CREATED);
@@ -195,10 +204,10 @@ public class AccountController {
         }
 
         Page<ArticleDTO> articleDTO = accountService.createPageableArticle(id, pageable, account);
-        PagedModel<EntityModel<ArticleDTO>> getArticles = assembler.toModel(articleDTO, this.getAccountProfile());
-        getArticles.add(this.getAccountArticles());
-        getArticles.add(this.getAccountComments());
-        getArticles.add(this.getAccountNotification());
+        PagedModel<EntityModel<ArticleDTO>> getArticles = assembler.toModel(articleDTO, this.getAccountProfile(id));
+        getArticles.add(this.getAccountArticles(id));
+        getArticles.add(this.getAccountComments(id));
+        getArticles.add(this.getAccountNotification(id));
         getArticles.add(this.getDOSCURL("/docs/index.html#resources-Account-article-get"));
 
         return new ResponseEntity(getArticles, HttpStatus.OK);
@@ -248,10 +257,10 @@ public class AccountController {
         }
 
         Page<CommentsDTO> commentsDTO = accountService.createPageableComments(id, pageable, account);
-        PagedModel<EntityModel<CommentsDTO>> getComments = assembler.toModel(commentsDTO, this.getAccountProfile());
-        getComments.add(this.getAccountArticles());
-        getComments.add(this.getAccountComments());
-        getComments.add(this.getAccountNotification());
+        PagedModel<EntityModel<CommentsDTO>> getComments = assembler.toModel(commentsDTO, this.getAccountProfile(id));
+        getComments.add(this.getAccountArticles(id));
+        getComments.add(this.getAccountComments(id));
+        getComments.add(this.getAccountNotification(id));
         getComments.add(this.getDOSCURL("/docs/index.html#resources-Account-comments-get"));
 
         return new ResponseEntity(getComments, HttpStatus.OK);
@@ -302,10 +311,10 @@ public class AccountController {
         }
 
         Page<NotificationDTO> pageableNotification = accountService.createPageableNotification(id, pageable, account);
-        PagedModel<EntityModel<NotificationDTO>> getNotification = assembler.toModel(pageableNotification, this.getAccountProfile());
-        getNotification.add(this.getAccountArticles());
-        getNotification.add(this.getAccountComments());
-        getNotification.add(this.getAccountNotification());
+        PagedModel<EntityModel<NotificationDTO>> getNotification = assembler.toModel(pageableNotification, this.getAccountProfile(id));
+        getNotification.add(this.getAccountArticles(id));
+        getNotification.add(this.getAccountComments(id));
+        getNotification.add(this.getAccountNotification(id));
         getNotification.add(this.getDOSCURL("/docs/index.html#resources-Account-notification-get"));
 
         return new ResponseEntity(getNotification, HttpStatus.OK);

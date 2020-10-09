@@ -1,6 +1,7 @@
 package org.kuroneko.restapiproject.article;
 
 import org.kuroneko.restapiproject.article.domain.Article;
+import org.kuroneko.restapiproject.community.domain.Community;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -21,4 +22,8 @@ public interface ArticleRepository extends JpaRepository<Article, Long>, Queryds
     @Modifying
     @Query("delete from Article a where a.id in :ids")
     void deleteAllByIdInQuery(@Param("ids") List<Long> collect);
+
+    Page<Article> findByAccountIdAndCommunityId(Long accountId, Long communityId, Pageable pageable);
+
+    Page<Article> findTop10ByOrderByCreateTimeDesc(Pageable pageable);
 }

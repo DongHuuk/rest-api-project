@@ -4,6 +4,7 @@ import org.kuroneko.restapiproject.account.AccountDetailsService;
 import org.kuroneko.restapiproject.account.AccountRepository;
 import org.kuroneko.restapiproject.account.AccountService;
 import org.kuroneko.restapiproject.account.domain.Account;
+import org.kuroneko.restapiproject.account.domain.UserAuthority;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -33,6 +34,7 @@ public class WithAccountSecurityContextFactory implements WithSecurityContextFac
         account.setEmail(email);
         account.setPassword(this.passwordEncoder.encode("1234567890"));
         account.setUsername("테스트1");
+        account.setAuthority(UserAuthority.MASTER);
         accountService.createNewAccount(account);
 
         UserDetails principal = accountDetailsService.loadUserByUsername(email);
