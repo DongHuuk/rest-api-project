@@ -28,7 +28,9 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -148,24 +150,45 @@ class CommunityControllerTest extends AccountMethods{
         assertTrue(all.isEmpty());
     }
 
+    private void createArticleWithCommunity(int division, Community community, Account account) {
+        for (int i = 0; i < 21; i++) {
+            ArticleForm articleForm = createArticleForm(division);
+            this.communityService.createCommunityInArticle(articleForm, community, account);
+        }
+    }
+
     @Test
-    @DisplayName("특정 커뮤니티의 게시글 요청 성공 - 200")
-    public void findCommunityWithArticles() throws Exception {
+    @DisplayName("특정 커뮤니티의 게시글 요청 성공 (전체) - 200")
+    public void findCommunityWithArticles_ALL() throws Exception {
         AccountForm accountForm = createAccountForm();
         Account account = saveAccount(accountForm);
         CommunityForm communityForm = createCommunityForm(account.getUsername());
         Community community = communityService.createCommunity(communityForm, account);
-        for (int i = 0; i < 42; i++) {
-            ArticleForm articleForm = createArticleForm(1);
-            this.communityService.createCommunityInArticle(articleForm, community, account);
-        }
+        this.createArticleWithCommunity(1, community, account);
+        this.createArticleWithCommunity(2, community, account);
+        this.createArticleWithCommunity(0, community, account);
 
         this.mockMvc.perform(get("/community/{id}", community.getId()))
-                .andDo(print());
+                .andDo(print())
+                .andExpect(status().isOk());
+    }
 
-        long count = this.articleRepository.count();
+    @Test
+    @DisplayName("특정 커뮤니티의 게시글 요청 성공 (HUMOR) - 200")
+    public void findCommunityWithArticles_HUMOR() throws Exception {
+        AccountForm accountForm = createAccountForm();
+        Account account = saveAccount(accountForm);
+        CommunityForm communityForm = createCommunityForm(account.getUsername());
+        Community community = communityService.createCommunity(communityForm, account);
+        this.createArticleWithCommunity(0, community, account);
+        this.createArticleWithCommunity(1, community, account);
+        this.createArticleWithCommunity(2, community, account);
 
-        assertEquals(count, 42);
+        this.mockMvc.perform(get("/community/{id}", community.getId())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("1000"))
+                .andDo(print())
+                .andExpect(status().isOk());
     }
 
 }

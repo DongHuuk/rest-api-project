@@ -1,6 +1,7 @@
 package org.kuroneko.restapiproject.article;
 
 import org.kuroneko.restapiproject.article.domain.Article;
+import org.kuroneko.restapiproject.article.domain.ArticleThema;
 import org.kuroneko.restapiproject.community.domain.Community;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;

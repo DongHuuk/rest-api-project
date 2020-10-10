@@ -64,11 +64,11 @@ public class AccountMethods {
         article.setCreateTime(LocalDateTime.now());
 
         switch (articleForm.getDivision()) {
-            case 1:
+            case 0:
                 article.setDivision(ArticleThema.HUMOR);
-            case 2:
+            case 1:
                 article.setDivision(ArticleThema.CHAT);
-            case 3:
+            case 2:
                 article.setDivision(ArticleThema.QUESTION);
             default:
                 article.setDivision(ArticleThema.CHAT);

@@ -1,6 +1,7 @@
 package org.kuroneko.restapiproject.article;
 
 import org.kuroneko.restapiproject.article.domain.Article;
+import org.kuroneko.restapiproject.article.domain.ArticleThema;
 import org.kuroneko.restapiproject.community.domain.Community;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -13,4 +14,8 @@ public interface ArticleRepositoryExtension {
     List<Article> findByNumber(List<Long> list);
 
     Page<Article> findByCommunityWithPageable(Community community, Pageable pageable);
+
+    Page<Article> findByCommunityAndDivisionWithPageable(Community community, ArticleThema articleThema, Pageable pageable);
+
+    Page<Article> findByDivisionWithPageable(ArticleThema articleThema, Pageable pageable);
 }

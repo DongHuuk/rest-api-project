@@ -62,10 +62,12 @@ public class CommunityService {
         switch (articleForm.getDivision()) {
             case 0:
                 article.setDivision(ArticleThema.HUMOR);
-            case 1:
-                article.setDivision(ArticleThema.CHAT);
+                break;
             case 2:
                 article.setDivision(ArticleThema.QUESTION);
+                break;
+            default:
+                article.setDivision(ArticleThema.CHAT);
         }
         long count = this.articleRepository.count();
         article.setNumber(count);
