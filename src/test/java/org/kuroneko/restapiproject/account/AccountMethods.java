@@ -37,7 +37,7 @@ public class AccountMethods {
         accountForm.setEmail("Test@email.com");
         accountForm.setPassword("12341234");
         accountForm.setCheckingPassword("12341234");
-        accountForm.setUsername("테스트1");
+        accountForm.setUsername("Test Method User Create");
         return accountForm;
     }
 

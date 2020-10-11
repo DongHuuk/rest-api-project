@@ -50,6 +50,21 @@ public class CommunityController {
     @Autowired private ArticleValidator articleValidator;
     @Autowired private ArticleRepository articleRepository;
 
+    private ResponseEntity processingByfindArticleWithCommunity(Link link){
+        CommunityResource resource = new CommunityResource();
+        resource.add(link);
+        return new ResponseEntity(resource, HttpStatus.BAD_REQUEST);
+    }
+
+    private ResponseEntity findArticleWithCommunityWithThema(Community community, ArticleThema articleThema, Pageable pageable,
+                                                             Link link, PagedResourcesAssembler<ArticleDTO> assembler) {
+        Page<Article> articles = this.articleRepository.findByCommunityAndDivisionWithPageable(community, articleThema, pageable);
+        Page<ArticleDTO> newArticles = this.communityService.wrappingByArticle(articles);
+        PagedModel<EntityModel<ArticleDTO>> resultPage = assembler.toModel(newArticles, link);
+
+        return new ResponseEntity(resultPage, HttpStatus.OK);
+    }
+
     @InitBinder("articleForm")
     public void articleFormValidator(WebDataBinder webDataBinder) {
         webDataBinder.addValidators(this.articleValidator);
@@ -92,9 +107,10 @@ public class CommunityController {
                                         PagedResourcesAssembler<ArticleDTO> assembler) {
         Optional<Community> communityById = this.communityRepository.findById(id);
         Link selfLink = linkTo(CommunityController.class).slash(id).withRel("get Community And Articles");
+        Link createCommunityLink = linkTo(CommunityController.class).withRel("create Community");
 
         if (communityById.isEmpty()) {
-            return new ResponseEntity(HttpStatus.BAD_REQUEST);
+            return this.processingByfindArticleWithCommunity(createCommunityLink);
         }
 
         Community community = communityById.get();
@@ -113,46 +129,32 @@ public class CommunityController {
             return findArticleWithCommunityWithThema(community, ArticleThema.CHAT, pageable, selfLink, assembler);
         } else if (cate == 3000) {
             return findArticleWithCommunityWithThema(community, ArticleThema.QUESTION, pageable, selfLink, assembler);
+        }else{
+            return this.processingByfindArticleWithCommunity(createCommunityLink);
         }
-
-        return new ResponseEntity(HttpStatus.BAD_REQUEST);
-    }
-
-    private ResponseEntity findArticleWithCommunityWithThema(Community community, ArticleThema articleThema, Pageable pageable,
-                                                    Link link, PagedResourcesAssembler<ArticleDTO> assembler) {
-        Page<Article> articles = this.articleRepository.findByCommunityAndDivisionWithPageable(community, articleThema, pageable);
-        Page<ArticleDTO> newArticles = this.communityService.wrappingByArticle(articles);
-        PagedModel<EntityModel<ArticleDTO>> resultPage = assembler.toModel(newArticles, link);
-
-        return new ResponseEntity(resultPage, HttpStatus.OK);
-    }
-
-    private ResponseEntity findArticleWithThema( ArticleThema articleThema, Pageable pageable,
-                                                    Link link, PagedResourcesAssembler<ArticleDTO> assembler) {
-        Page<Article> articleList = this.articleRepository.findByDivisionWithPageable(articleThema, pageable);
-        Page<ArticleDTO> articleDTOS = this.communityService.wrappingByArticle(articleList);
-        PagedModel<EntityModel<ArticleDTO>> resultPage = assembler.toModel(articleDTOS, link);
-
-        return new ResponseEntity(resultPage, HttpStatus.OK);
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity updateCommunity(@CurrentAccount Account account, CommunityForm communityForm ,@PathVariable Long id) {
-        if (!account.getAuthority().equals(UserAuthority.MASTER)) {
-            return new ResponseEntity(HttpStatus.FORBIDDEN);
+    public ResponseEntity updateCommunity(@CurrentAccount Account account, @PathVariable("id") Long id,
+                                          @RequestBody @Valid CommunityForm communityForm, Errors errors) {
+        if (errors.hasErrors()) {
+            return new ResponseEntity(new ErrorsResource(errors), HttpStatus.BAD_REQUEST);
         }
 
         Optional<Community> communityById = this.communityRepository.findById(id);
-        if (communityById.isEmpty()) {
-            return new ResponseEntity(HttpStatus.BAD_REQUEST);
-        }
-
         Optional<Account> accountByUsername = this.accountRepository.findByUsername(communityForm.getManager());
-        if (accountByUsername.isEmpty()) {
+        if (communityById.isEmpty() || accountByUsername.isEmpty()) {
             return new ResponseEntity(HttpStatus.BAD_REQUEST);
         }
 
-        this.communityService.updateCommunity(communityById.get(), communityForm, accountByUsername.get());
+        Community community = communityById.get();
+        if (account.getAuthority().equals(UserAuthority.USER)
+                || !community.getManager().equals(account)
+                || community.getManager().getAuthority().equals(UserAuthority.USER)) {
+            return new ResponseEntity(HttpStatus.FORBIDDEN);
+        }
+
+        this.communityService.updateCommunity(community, communityForm, accountByUsername.get());
 
         CommunityResource communityResource = new CommunityResource();
         communityResource.add(linkTo(CommunityController.class).slash("/CommunityId").withRel("Community Site"));
