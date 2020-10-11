@@ -1,5 +1,6 @@
 package org.kuroneko.restapiproject.community;
 
+import org.hibernate.hql.internal.ast.ErrorReporter;
 import org.kuroneko.restapiproject.account.AccountController;
 import org.kuroneko.restapiproject.account.AccountRepository;
 import org.kuroneko.restapiproject.account.CurrentAccount;
@@ -85,53 +86,33 @@ public class CommunityController {
         return new ResponseEntity(resource, HttpStatus.CREATED);
     }
 
-    //article 리턴 And Page 있어야 할 듯 (유머 게시판에 들어가면 그 글들이랑 next previous 있는 그화면 나와야함
-    //특정 분야의 글을 조회하기 위해선 특정 값을 URL로 넘겨주고 이를 받아서 서버에서 분류해서 처리하는 방식을 사용해야 한다.
     @GetMapping("/{id}")
-    @Transactional
-    public ResponseEntity findCommunity(@PathVariable Long id, @RequestBody(required = false) Integer cate,
+    public ResponseEntity findArticleWithCommunity(@PathVariable Long id, @RequestBody(required = false) Integer cate,
                                         @PageableDefault(sort = "createTime", direction = Sort.Direction.DESC) Pageable pageable,
                                         PagedResourcesAssembler<ArticleDTO> assembler) {
         Optional<Community> communityById = this.communityRepository.findById(id);
         Link selfLink = linkTo(CommunityController.class).slash(id).withRel("get Community And Articles");
 
-        if (cate == null || cate == 0) {
-            if (communityById.isPresent()) {
-                Community community = communityById.get();
-                Page<Article> articles = this.articleRepository.findByCommunityWithPageable(community, pageable);
-                Page<ArticleDTO> newArticles = this.communityService.wrappingByArticle(articles);
-                PagedModel<EntityModel<ArticleDTO>> resultPage = assembler.toModel(newArticles, selfLink);
+        if (communityById.isEmpty()) {
+            return new ResponseEntity(HttpStatus.BAD_REQUEST);
+        }
 
-                return new ResponseEntity(resultPage, HttpStatus.OK);
-            }
-            Page<Article> articleList = this.articleRepository.findTop10ByOrderByCreateTimeDesc(pageable);
-            Page<ArticleDTO> articleDTOS = this.communityService.wrappingByArticle(articleList);
-            PagedModel<EntityModel<ArticleDTO>> resultPage = assembler.toModel(articleDTOS, selfLink);
+        Community community = communityById.get();
+
+        if (cate == null || cate == 0) {
+            Page<Article> articles = this.articleRepository.findByCommunityWithPageable(community, pageable);
+            Page<ArticleDTO> newArticles = this.communityService.wrappingByArticle(articles);
+            PagedModel<EntityModel<ArticleDTO>> resultPage = assembler.toModel(newArticles, selfLink);
 
             return new ResponseEntity(resultPage, HttpStatus.OK);
         }
 
         if (cate == 1000) {
-            if (communityById.isPresent()) {
-                Community community = communityById.get();
-                return findArticleWithCommunityWithThema(community, ArticleThema.HUMOR, pageable, selfLink, assembler);
-            } else {
-                return findArticleWithThema(ArticleThema.HUMOR, pageable, selfLink, assembler);
-            }
+            return findArticleWithCommunityWithThema(community, ArticleThema.HUMOR, pageable, selfLink, assembler);
         } else if (cate == 2000) {
-            if (communityById.isPresent()) {
-                Community community = communityById.get();
-                return findArticleWithCommunityWithThema(community, ArticleThema.CHAT, pageable, selfLink, assembler);
-            } else {
-                return findArticleWithThema(ArticleThema.CHAT, pageable, selfLink, assembler);
-            }
+            return findArticleWithCommunityWithThema(community, ArticleThema.CHAT, pageable, selfLink, assembler);
         } else if (cate == 3000) {
-            if (communityById.isPresent()) {
-                Community community = communityById.get();
-                return findArticleWithCommunityWithThema(community, ArticleThema.QUESTION, pageable, selfLink, assembler);
-            } else {
-                return findArticleWithThema(ArticleThema.QUESTION, pageable, selfLink, assembler);
-            }
+            return findArticleWithCommunityWithThema(community, ArticleThema.QUESTION, pageable, selfLink, assembler);
         }
 
         return new ResponseEntity(HttpStatus.BAD_REQUEST);

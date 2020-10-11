@@ -158,8 +158,24 @@ class CommunityControllerTest extends AccountMethods{
     }
 
     @Test
+    @DisplayName("특정 커뮤니티의 게시글 요청 성공 (전체) With Community - 200")
+    public void findArticleWithCommunity_ALL() throws Exception {
+        AccountForm accountForm = createAccountForm();
+        Account account = saveAccount(accountForm);
+        CommunityForm communityForm = createCommunityForm(account.getUsername());
+        Community community = communityService.createCommunity(communityForm, account);
+        this.createArticleWithCommunity(1, community, account);
+        this.createArticleWithCommunity(2, community, account);
+        this.createArticleWithCommunity(0, community, account);
+
+        this.mockMvc.perform(get("/community/{id}", community.getId()))
+                .andDo(print())
+                .andExpect(status().isOk());
+    }
+
+    @Test
     @DisplayName("특정 커뮤니티의 게시글 요청 성공 (전체) - 200")
-    public void findCommunityWithArticles_ALL() throws Exception {
+    public void findArticle_ALL() throws Exception {
         AccountForm accountForm = createAccountForm();
         Account account = saveAccount(accountForm);
         CommunityForm communityForm = createCommunityForm(account.getUsername());
@@ -175,7 +191,7 @@ class CommunityControllerTest extends AccountMethods{
 
     @Test
     @DisplayName("특정 커뮤니티의 게시글 요청 성공 (HUMOR) - 200")
-    public void findCommunityWithArticles_HUMOR() throws Exception {
+    public void findArticleWithCommunity_HUMOR() throws Exception {
         AccountForm accountForm = createAccountForm();
         Account account = saveAccount(accountForm);
         CommunityForm communityForm = createCommunityForm(account.getUsername());
@@ -187,6 +203,42 @@ class CommunityControllerTest extends AccountMethods{
         this.mockMvc.perform(get("/community/{id}", community.getId())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("1000"))
+                .andDo(print())
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    @DisplayName("특정 커뮤니티의 게시글 요청 성공 (CHAT) - 200")
+    public void findArticleWithCommunity_CHAT() throws Exception {
+        AccountForm accountForm = createAccountForm();
+        Account account = saveAccount(accountForm);
+        CommunityForm communityForm = createCommunityForm(account.getUsername());
+        Community community = communityService.createCommunity(communityForm, account);
+        this.createArticleWithCommunity(0, community, account);
+        this.createArticleWithCommunity(1, community, account);
+        this.createArticleWithCommunity(2, community, account);
+
+        this.mockMvc.perform(get("/community/{id}", community.getId())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("2000"))
+                .andDo(print())
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    @DisplayName("특정 커뮤니티의 게시글 요청 성공 (QUESTION) - 200")
+    public void findArticleWithCommunity_QUESTION() throws Exception {
+        AccountForm accountForm = createAccountForm();
+        Account account = saveAccount(accountForm);
+        CommunityForm communityForm = createCommunityForm(account.getUsername());
+        Community community = communityService.createCommunity(communityForm, account);
+        this.createArticleWithCommunity(0, community, account);
+        this.createArticleWithCommunity(1, community, account);
+        this.createArticleWithCommunity(2, community, account);
+
+        this.mockMvc.perform(get("/community/{id}", community.getId())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("3000"))
                 .andDo(print())
                 .andExpect(status().isOk());
     }
