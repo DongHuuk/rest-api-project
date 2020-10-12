@@ -61,10 +61,12 @@ class AccountControllerTest extends AccountMethods{
     @Test
     @DisplayName("Account 생성 - 201")
     public void createAccount_201() throws Exception {
+        AccountForm accountForm = createAccountForm();
+        accountForm.setUsername("TestUser");
         this.mockMvc.perform(post("/accounts")
                 .contentType(MediaType.APPLICATION_JSON)
                 .accept(MediaTypes.HAL_JSON)
-                .content(objectMapper.writeValueAsString(createAccountForm()))
+                .content(objectMapper.writeValueAsString(accountForm))
                 .with(csrf()))
                 .andDo(print())
                 .andExpect(status().isCreated())
@@ -157,7 +159,7 @@ class AccountControllerTest extends AccountMethods{
 
     @Test
     @DisplayName("Account 조회 성공_success")
-    @WithAccount("Test@email.com")
+    @WithAccount("Test@naver.com")
     public void sendAccount() throws Exception {
         AccountForm accountForm = createAccountForm();
         Account account = saveAccount(accountForm);
@@ -168,6 +170,7 @@ class AccountControllerTest extends AccountMethods{
                 .andExpect(status().isOk())
                 .andDo(document("get-Account",
                         links(
+                                linkWithRel("self").description("Account Profile"),
                                 linkWithRel("Account Profile").description("Account Profile"),
                                 linkWithRel("get Articles").description("Account's get Articles"),
                                 linkWithRel("get Comments").description("Account's get Comments"),
@@ -197,7 +200,7 @@ class AccountControllerTest extends AccountMethods{
 
     @Test
     @DisplayName("Account 조회 실패_notFound_AccountId")
-    @WithAccount("Test@email.com")
+    @WithAccount("Test@naver.com")
     public void sendAccount_notFound() throws Exception {
         AccountForm accountForm = createAccountForm();
         saveAccount(accountForm);
@@ -245,12 +248,13 @@ class AccountControllerTest extends AccountMethods{
     @DisplayName("Account 갱신 실패_400 error(Validator_duplicate_username)")
     public void updateAccount_error_validator_duplicate_username() throws Exception {
         AccountForm accountForm_1 = createAccountForm();
+        accountForm_1.setUsername("Test Method User Create");
         saveAccount(accountForm_1);
         AccountForm accountForm_2 = createAccountForm();
-        accountForm_2.setUsername("테스트2");
+        accountForm_2.setUsername("Test Method User Create2");
         accountForm_2.setEmail("test2@gmail.com");
         Account account_2 = saveAccount(accountForm_2);
-        accountForm_2.setUsername("테스트1");
+        accountForm_2.setUsername("Test Method User Create");
 
         this.mockMvc.perform(put("/accounts/" + account_2.getId())
                 .contentType(MediaType.APPLICATION_JSON)
