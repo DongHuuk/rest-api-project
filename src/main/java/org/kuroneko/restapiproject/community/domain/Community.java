@@ -1,5 +1,6 @@
 package org.kuroneko.restapiproject.community.domain;
 
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import lombok.*;
 import org.kuroneko.restapiproject.account.domain.Account;
 import org.kuroneko.restapiproject.article.domain.Article;
@@ -27,6 +28,7 @@ public class Community {
     private LocalDateTime updateTime;
 
     @OneToMany(mappedBy = "community", fetch = FetchType.LAZY)
+    @JsonManagedReference
     private Set<Article> article = new HashSet<>();
 
     @ManyToOne

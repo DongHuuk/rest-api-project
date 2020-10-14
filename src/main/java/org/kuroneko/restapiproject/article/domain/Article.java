@@ -48,6 +48,7 @@ public class Article {
     private Account account;
 
     @ManyToOne
+    @JsonBackReference
     private Community community;
 
     private int report;

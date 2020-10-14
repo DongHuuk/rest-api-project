@@ -24,6 +24,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.hateoas.MediaTypes;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.userdetails.memory.UserAttribute;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
@@ -47,7 +48,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureMockMvc
 @AutoConfigureRestDocs
 @Import(RestDocsConfiguration.class)
-class CommunityControllerTest extends AccountMethods {
+class CommunityControllerTest extends CommunityMethods {
 
     @Autowired
     private MockMvc mockMvc;
@@ -67,13 +68,6 @@ class CommunityControllerTest extends AccountMethods {
         this.articleRepository.deleteAll();
         this.communityRepository.deleteAll();
         this.accountRepository.deleteAll();
-    }
-
-    private CommunityForm createCommunityForm(String userName) {
-        CommunityForm communityForm = new CommunityForm();
-        communityForm.setTitle("테스트 커뮤니티");
-        communityForm.setManager(userName);
-        return communityForm;
     }
 
     @Test
@@ -168,13 +162,6 @@ class CommunityControllerTest extends AccountMethods {
         assertTrue(all.isEmpty());
     }
 
-    private void createArticleWithCommunity(int division, Community community, Account account) {
-        for (int i = 0; i < 21; i++) {
-            ArticleForm articleForm = createArticleForm(division);
-            this.communityService.createCommunityInArticle(articleForm, community, account);
-        }
-    }
-
     @Test
     @DisplayName("특정 커뮤니티의 게시글 요청 성공 (전체) With Community - 200")
     public void findArticleWithCommunity_ALL() throws Exception {
@@ -182,9 +169,7 @@ class CommunityControllerTest extends AccountMethods {
         Account account = saveAccount(accountForm);
         CommunityForm communityForm = createCommunityForm(account.getUsername());
         Community community = communityService.createCommunity(communityForm, account);
-        this.createArticleWithCommunity(1, community, account);
-        this.createArticleWithCommunity(2, community, account);
-        this.createArticleWithCommunity(0, community, account);
+        this.createArticleWithCommunity(community, account);
 
         this.mockMvc.perform(get("/community/{id}", community.getId()))
                 .andDo(print())
@@ -198,9 +183,7 @@ class CommunityControllerTest extends AccountMethods {
         Account account = saveAccount(accountForm);
         CommunityForm communityForm = createCommunityForm(account.getUsername());
         Community community = communityService.createCommunity(communityForm, account);
-        this.createArticleWithCommunity(1, community, account);
-        this.createArticleWithCommunity(2, community, account);
-        this.createArticleWithCommunity(0, community, account);
+        this.createArticleWithCommunity(community, account);
 
         this.mockMvc.perform(get("/community/{id}", community.getId()))
                 .andDo(print())
@@ -214,9 +197,7 @@ class CommunityControllerTest extends AccountMethods {
         Account account = saveAccount(accountForm);
         CommunityForm communityForm = createCommunityForm(account.getUsername());
         Community community = communityService.createCommunity(communityForm, account);
-        this.createArticleWithCommunity(0, community, account);
-        this.createArticleWithCommunity(1, community, account);
-        this.createArticleWithCommunity(2, community, account);
+        this.createArticleWithCommunity(community, account);
 
         this.mockMvc.perform(get("/community/{id}", community.getId())
                 .contentType(MediaType.APPLICATION_JSON)
@@ -232,9 +213,7 @@ class CommunityControllerTest extends AccountMethods {
         Account account = saveAccount(accountForm);
         CommunityForm communityForm = createCommunityForm(account.getUsername());
         Community community = communityService.createCommunity(communityForm, account);
-        this.createArticleWithCommunity(0, community, account);
-        this.createArticleWithCommunity(1, community, account);
-        this.createArticleWithCommunity(2, community, account);
+        this.createArticleWithCommunity(community, account);
 
         this.mockMvc.perform(get("/community/{id}", community.getId())
                 .contentType(MediaType.APPLICATION_JSON)
@@ -250,9 +229,7 @@ class CommunityControllerTest extends AccountMethods {
         Account account = saveAccount(accountForm);
         CommunityForm communityForm = createCommunityForm(account.getUsername());
         Community community = communityService.createCommunity(communityForm, account);
-        this.createArticleWithCommunity(0, community, account);
-        this.createArticleWithCommunity(1, community, account);
-        this.createArticleWithCommunity(2, community, account);
+        this.createArticleWithCommunity(community, account);
 
         this.mockMvc.perform(get("/community/{id}", community.getId())
                 .contentType(MediaType.APPLICATION_JSON)
@@ -268,7 +245,7 @@ class CommunityControllerTest extends AccountMethods {
         Account account = saveAccount(accountForm);
         CommunityForm communityForm = createCommunityForm(account.getUsername());
         Community community = communityService.createCommunity(communityForm, account);
-        this.createArticleWithCommunity(1, community, account);
+        this.createArticleWithCommunity(community, account);
 
         this.mockMvc.perform(get("/community/158231"))
                 .andDo(print())
@@ -282,7 +259,7 @@ class CommunityControllerTest extends AccountMethods {
         Account account = saveAccount(accountForm);
         CommunityForm communityForm = createCommunityForm(account.getUsername());
         Community community = communityService.createCommunity(communityForm, account);
-        this.createArticleWithCommunity(1, community, account);
+        this.createArticleWithCommunity(community, account);
 
         this.mockMvc.perform(get("/community/{id}", community.getId())
                 .contentType(MediaType.APPLICATION_JSON)
@@ -374,7 +351,7 @@ class CommunityControllerTest extends AccountMethods {
     }
 
     @Test
-    @DisplayName("특정 커뮤니티 수정 (Not Found CommunityId) - 400")
+    @DisplayName("특정 커뮤니티 수정 (Not Found CommunityId) - 404")
     @WithAccount("Test@test.com")
     @Transactional
     public void updateCommunity_400_CommunityId() throws Exception {
@@ -392,7 +369,7 @@ class CommunityControllerTest extends AccountMethods {
                 .content(this.objectMapper.writeValueAsString(communityForm))
                 .with(csrf()))
                 .andDo(print())
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isNotFound());
 
         Community updateCommunity = this.communityRepository.findById(community.getId()).orElseThrow();
         assertNotEquals(updateCommunity.getManager(), account);
@@ -413,7 +390,7 @@ class CommunityControllerTest extends AccountMethods {
         account.setAuthority(UserAuthority.MASTER);
         communityForm.setManager("Not Found Account Username");
 
-        this.mockMvc.perform(put("/community/213082091")
+        this.mockMvc.perform(put("/community/{id}", community.getId())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(this.objectMapper.writeValueAsString(communityForm))
                 .with(csrf()))
@@ -485,4 +462,84 @@ class CommunityControllerTest extends AccountMethods {
                 .andExpect(status().isForbidden());
     }
 
+    @Test
+    @DisplayName("특정 커뮤니티 삭제 - 204")
+    @WithAccount("Test@testtest.com")
+    @Transactional
+    public void deleteCommunity() throws Exception {
+        Account account = this.accountRepository.findByEmail("Test@testtest.com").orElseThrow();
+        account.setAuthority(UserAuthority.MASTER);
+        Account newAccount = this.accountRepository.save(account);
+        CommunityForm communityForm = createCommunityForm(newAccount.getUsername());
+        Community community = communityService.createCommunity(communityForm, newAccount);
+
+        createArticleWithCommunity(community, newAccount);
+
+        List<Article> before = this.articleRepository.findAll();
+        assertFalse(before.isEmpty());
+
+        this.mockMvc.perform(delete("/community/{id}", community.getId())
+                .with(csrf()))
+                .andDo(print())
+                .andExpect(status().isNoContent());
+
+        List<Article> after = this.articleRepository.findAll();
+        Optional<Community> after_community = this.communityRepository.findById(community.getId());
+        assertTrue(after.isEmpty());
+        assertTrue(after_community.isEmpty());
+    }
+
+    @Test
+    @DisplayName("특정 커뮤니티 삭제 (Account Authority Error) - 403")
+    @WithAccount("Test@testtest.com")
+    @Transactional
+    public void deleteCommunity_FORBIDDEN() throws Exception {
+        Account account = this.accountRepository.findByEmail("Test@testtest.com").orElseThrow();
+        account.setAuthority(UserAuthority.USER);
+        Account newAccount = this.accountRepository.save(account);
+        CommunityForm communityForm = createCommunityForm(newAccount.getUsername());
+        Community community = communityService.createCommunity(communityForm, newAccount);
+
+        createArticleWithCommunity(community, newAccount);
+
+        List<Article> before = this.articleRepository.findAll();
+        assertFalse(before.isEmpty());
+
+        this.mockMvc.perform(delete("/community/{id}", community.getId())
+                .with(csrf()))
+                .andDo(print())
+                .andExpect(status().isForbidden());
+
+        List<Article> after = this.articleRepository.findAll();
+        Optional<Community> after_community = this.communityRepository.findById(community.getId());
+        assertFalse(after.isEmpty());
+        assertFalse(after_community.isEmpty());
+    }
+
+    @Test
+    @DisplayName("특정 커뮤니티 삭제 (Not Found Community) - 404")
+    @WithAccount("Test@testtest.com")
+    @Transactional
+    public void deleteCommunity_CommunityId() throws Exception {
+        Account account = this.accountRepository.findByEmail("Test@testtest.com").orElseThrow();
+        account.setAuthority(UserAuthority.MASTER);
+        Account newAccount = this.accountRepository.save(account);
+        CommunityForm communityForm = createCommunityForm(newAccount.getUsername());
+        Community community = communityService.createCommunity(communityForm, newAccount);
+
+        createArticleWithCommunity(community, newAccount);
+
+        List<Article> before = this.articleRepository.findAll();
+        assertFalse(before.isEmpty());
+
+        this.mockMvc.perform(delete("/community/{id}", 1927391)
+                .with(csrf()))
+                .andDo(print())
+                .andExpect(status().isNotFound());
+
+        List<Article> after = this.articleRepository.findAll();
+        Optional<Community> after_community = this.communityRepository.findById(community.getId());
+        assertFalse(after.isEmpty());
+        assertFalse(after_community.isEmpty());
+    }
 }

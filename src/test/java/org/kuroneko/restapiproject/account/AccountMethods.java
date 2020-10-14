@@ -16,11 +16,13 @@ import org.kuroneko.restapiproject.notification.domain.Notification;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Primary;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 import java.time.LocalDateTime;
 
+@Primary
 @SpringBootTest
 @ExtendWith(SpringExtension.class)
 public class AccountMethods {

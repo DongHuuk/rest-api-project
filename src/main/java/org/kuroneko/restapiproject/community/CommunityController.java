@@ -1,12 +1,13 @@
 package org.kuroneko.restapiproject.community;
 
-import org.hibernate.hql.internal.ast.ErrorReporter;
+import lombok.extern.slf4j.Slf4j;
 import org.kuroneko.restapiproject.account.AccountController;
 import org.kuroneko.restapiproject.account.AccountRepository;
 import org.kuroneko.restapiproject.account.CurrentAccount;
 import org.kuroneko.restapiproject.account.domain.Account;
 import org.kuroneko.restapiproject.account.domain.UserAuthority;
 import org.kuroneko.restapiproject.article.ArticleRepository;
+import org.kuroneko.restapiproject.article.ArticleResource;
 import org.kuroneko.restapiproject.article.domain.Article;
 import org.kuroneko.restapiproject.article.domain.ArticleDTO;
 import org.kuroneko.restapiproject.article.domain.ArticleForm;
@@ -17,7 +18,6 @@ import org.kuroneko.restapiproject.community.validation.ArticleValidator;
 import org.kuroneko.restapiproject.errors.ErrorsResource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
@@ -25,21 +25,20 @@ import org.springframework.data.web.PagedResourcesAssembler;
 import org.springframework.hateoas.EntityModel;
 import org.springframework.hateoas.Link;
 import org.springframework.hateoas.PagedModel;
+import org.springframework.hateoas.server.mvc.WebMvcLinkBuilder;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.lang.Nullable;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.Errors;
 import org.springframework.web.bind.WebDataBinder;
 import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
-import java.util.List;
 import java.util.Optional;
 
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
 
+@Slf4j
 @RestController
 @RequestMapping(value = "/community", produces = "application/hal+json;charset=UTF-8")
 public class CommunityController {
@@ -80,7 +79,7 @@ public class CommunityController {
     @PostMapping
     public ResponseEntity createCommunity(@CurrentAccount Account account, @RequestBody @Valid CommunityForm communityForm,
                                           Errors errors){
-        if (account == null || !account.getAuthority().equals(UserAuthority.MASTER)) {
+        if (account == null || account.getAuthority().equals(UserAuthority.USER)) {
             return new ResponseEntity(HttpStatus.FORBIDDEN);
         }
 
@@ -142,11 +141,14 @@ public class CommunityController {
         }
 
         Optional<Community> communityById = this.communityRepository.findById(id);
-        Optional<Account> accountByUsername = this.accountRepository.findByUsername(communityForm.getManager());
-        if (communityById.isEmpty() || accountByUsername.isEmpty()) {
-            return new ResponseEntity(HttpStatus.BAD_REQUEST);
+        if (communityById.isEmpty()) {
+            return new ResponseEntity(HttpStatus.NOT_FOUND);
         }
 
+        Optional<Account> accountByUsername = this.accountRepository.findByUsername(communityForm.getManager());
+        if(accountByUsername.isEmpty()){
+            return new ResponseEntity(HttpStatus.BAD_REQUEST);
+        }
         Community community = communityById.get();
         if (account.getAuthority().equals(UserAuthority.USER)
                 || !community.getManager().equals(account)
@@ -162,55 +164,32 @@ public class CommunityController {
         return new ResponseEntity(communityResource, HttpStatus.OK);
     }
 
+
     @DeleteMapping("/{id}")
     public ResponseEntity deleteCommunity(@CurrentAccount Account account, @PathVariable Long id) {
-        if (!account.getAuthority().equals(UserAuthority.MASTER)) {
+        if (account.getAuthority().equals(UserAuthority.USER)) {
             return new ResponseEntity(HttpStatus.FORBIDDEN);
         }
-
         Optional<Community> communityById = this.communityRepository.findById(id);
 
         if (communityById.isEmpty()) {
-            return new ResponseEntity(HttpStatus.BAD_REQUEST);
+            return new ResponseEntity(HttpStatus.NOT_FOUND);
         }
-
         this.communityService.deleteCommunity(communityById.get());
         HttpHeaders httpHeaders = new HttpHeaders();
-        httpHeaders.setLocation(linkTo(CommunityController.class)
-                .slash("CommunityId").withRel("get Community").toUri());
+        httpHeaders.setLocation(linkTo(CommunityController.class).withRel("root").toUri());
         
         return new ResponseEntity(httpHeaders, HttpStatus.NO_CONTENT);
     }
 
-    @GetMapping("/{id}/article")
-    public ResponseEntity findCommunityWithArticle(@CurrentAccount Account account, @PathVariable Long id,
-                                                   @PageableDefault(sort = "createTime", direction = Sort.Direction.DESC) Pageable pageable,
-                                                   PagedResourcesAssembler<ArticleDTO> assembler) {
-        Optional<Community> communityRepositoryById = this.communityRepository.findById(id);
-        if (communityRepositoryById.isEmpty()) {
-            return new ResponseEntity(HttpStatus.BAD_REQUEST);
-        }
-
-        if (account != null) {
-            Page<ArticleDTO> resultList = this.communityService
-                    .createPageableArticleWithAccount(pageable, account, communityRepositoryById.get());
-            PagedModel<EntityModel<ArticleDTO>> getArticles = assembler.toModel(resultList,
-                    linkTo(CommunityController.class).slash(id + "/article").withRel("get Articles"));
-            return new ResponseEntity(getArticles, HttpStatus.OK);
-        }else{
-            List<Community> resultList = this.communityRepository.findTop10ByOrderByCreateTimeDesc();
-            return new ResponseEntity(resultList, HttpStatus.OK);
-        }
-    }
-
     @PostMapping("/{id}/article")
-    public ResponseEntity createCommunityInArticle(@CurrentAccount Account account, @PathVariable Long id,
+    public ResponseEntity createArticleIntCommunity(@CurrentAccount Account account, @PathVariable Long id,
                                                    @RequestBody @Valid ArticleForm articleForm, Errors errors) {
         if (errors.hasErrors()) {
             return new ResponseEntity(new ErrorsResource(errors), HttpStatus.BAD_REQUEST);
         }
         if (account == null) {
-            return new ResponseEntity(HttpStatus.NOT_FOUND);
+            return new ResponseEntity(HttpStatus.FORBIDDEN);
         }
 
         Optional<Community> communityById = this.communityRepository.findById(id);
@@ -218,14 +197,98 @@ public class CommunityController {
             return new ResponseEntity(HttpStatus.NOT_FOUND);
         }
 
-        Article article = this.communityService.createCommunityInArticle(articleForm, communityById.get(), account);
+        Article article = this.communityService.createArticleInCommunity(articleForm, communityById.get(), account);
         CommunityResource resource = new CommunityResource();
         resource.add(linkTo(AccountController.class).slash(account.getId()).withRel("Account Profile"));
         resource.add(linkTo(CommunityController.class).slash(id).withRel("get Community"));
         resource.add(linkTo(CommunityController.class).slash(id + "/article/" + article.getId())
                 .withRel("get Article By Community"));
 
-        return new ResponseEntity(HttpStatus.CREATED);
+        return new ResponseEntity(resource, HttpStatus.CREATED);
+    }
+
+    @GetMapping("/{id}/article/{articleId}")
+    public ResponseEntity findArticleInCommunity(@PathVariable("id") Long communityId,
+                                      @PathVariable("articleId") Long articleId) {
+        Optional<Community> communityRepositoryById = this.communityRepository.findById(communityId);
+        Optional<Article> articleRepositoryById = this.articleRepository.findById(articleId);
+        if (communityRepositoryById.isEmpty() || articleRepositoryById.isEmpty()) {
+            return new ResponseEntity(HttpStatus.BAD_REQUEST);
+        }
+
+        Article article = articleRepositoryById.get();
+        if (!article.getCommunity().equals(communityRepositoryById.get())) {
+            return new ResponseEntity(HttpStatus.BAD_REQUEST);
+        }
+
+        ArticleResource resource = new ArticleResource(article);
+        resource.add(WebMvcLinkBuilder.linkTo(CommunityController.class).slash(article.getCommunity().getId()
+                + "/article").withRel("create Article In Community"));
+
+        return new ResponseEntity(resource, HttpStatus.OK);
+    }
+
+    @GetMapping("/{id}/article/{articleId}/modify")
+    public ResponseEntity findArticleWithCommunity(@CurrentAccount Account account,
+                                                     @PathVariable("id") Long communityId,
+                                                     @PathVariable("articleId") Long articleId) {
+        if (account == null) {
+            return new ResponseEntity(HttpStatus.FORBIDDEN);
+        }
+
+        Optional<Community> communityRepositoryById = this.communityRepository.findById(communityId);
+        Optional<Article> articleRepositoryById = this.articleRepository.findById(articleId);
+        if (communityRepositoryById.isEmpty() || articleRepositoryById.isEmpty()) {
+            return new ResponseEntity(HttpStatus.BAD_REQUEST);
+        }
+
+        Article article = articleRepositoryById.get();
+        if (!article.getCommunity().equals(communityRepositoryById.get()) || !article.getAccount().equals(account)) {
+            return new ResponseEntity(HttpStatus.BAD_REQUEST);
+        }
+
+        ArticleResource resource = new ArticleResource(article);
+        resource.add(WebMvcLinkBuilder.linkTo(CommunityController.class).slash(article.getCommunity().getId()
+                + "/article").withRel("create Article In Community"));
+
+        return new ResponseEntity(resource, HttpStatus.OK);
+    }
+
+    @PutMapping("/{id}/article/{articleId}/modify")
+    public ResponseEntity updateArticleWithCommunity(@CurrentAccount Account account, @PathVariable("id") Long communityId,
+                                                   @PathVariable("articleId") Long articleId,
+                                                     @RequestBody @Valid ArticleForm articleForm, Errors errors) {
+        if (account == null) {
+            return new ResponseEntity(HttpStatus.FORBIDDEN);
+        }
+
+        if (errors.hasErrors()) {
+            return new ResponseEntity(new ErrorsResource(errors), HttpStatus.BAD_REQUEST);
+        }
+
+        Optional<Community> communityRepositoryById = this.communityRepository.findById(communityId);
+        Optional<Article> articleRepositoryById = this.articleRepository.findById(articleId);
+        if (communityRepositoryById.isEmpty() || articleRepositoryById.isEmpty()) {
+            return new ResponseEntity(HttpStatus.BAD_REQUEST);
+        }
+
+        Article article = articleRepositoryById.get();
+        Community community = communityRepositoryById.get();
+        if (!article.getCommunity().equals(community) || !article.getAccount().equals(account)) {
+            return new ResponseEntity(HttpStatus.BAD_REQUEST);
+        }
+
+        Article newArticle = this.communityService.updateArticleInCommunity(articleForm, community, article);
+
+        ArticleResource resource = new ArticleResource();
+        resource.add(WebMvcLinkBuilder.linkTo(CommunityController.class)
+                .slash(article.getCommunity().getId() + "/article/" + newArticle.getId())
+                .withRel("show Article In Community"));
+        resource.add(WebMvcLinkBuilder.linkTo(CommunityController.class)
+                .slash(article.getCommunity().getId() + "/article")
+                .withRel("create Article In Community"));
+
+        return new ResponseEntity(resource, HttpStatus.OK);
     }
 
 }

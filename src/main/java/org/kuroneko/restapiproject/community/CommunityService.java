@@ -13,13 +13,11 @@ import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Service;
 
-import javax.swing.plaf.ComponentUI;
 import javax.transaction.Transactional;
 import java.time.LocalDateTime;
-import java.util.Optional;
+import java.util.List;
 
 @Service
 @Transactional
@@ -41,6 +39,8 @@ public class CommunityService {
     }
 
     public void deleteCommunity(Community community) {
+        List<Article> articleList = this.articleRepository.findByCommunity(community);
+        this.articleRepository.deleteInBatch(articleList);
         this.communityRepository.delete(community);
     }
 
@@ -50,7 +50,7 @@ public class CommunityService {
         this.communityRepository.save(community);
     }
 
-    public Article createCommunityInArticle(ArticleForm articleForm, Community community, Account account) {
+    public Article createArticleInCommunity(ArticleForm articleForm, Community community, Account account) {
         Account newAccount = this.accountRepository.findById(account.getId()).orElseThrow();
         Article article = new Article();
         article.setTitle(articleForm.getTitle());
@@ -88,6 +88,15 @@ public class CommunityService {
             map.setAuthority(account.getAuthority() + "");
             return map;
         });
+
+        /*
+            Page<ArticleDTO> resultList = this.communityService
+                    .createPageableArticleWithAccount(pageable, account, communityRepositoryById.get());
+            PagedModel<EntityModel<ArticleDTO>> getArticles = assembler.toModel(resultList,
+                    linkTo(CommunityController.class).slash(id + "/article").withRel("get Articles"));
+            return new ResponseEntity(getArticles, HttpStatus.OK);
+     */
+
     }
 
     public Page<ArticleDTO> wrappingByArticle(Page<Article> articles) {
@@ -100,5 +109,27 @@ public class CommunityService {
             map.setAuthority(account.getAuthority() + "");
             return map;
         });
+    }
+
+    public Article updateArticleInCommunity(ArticleForm articleForm, Community community, Article article) {
+        article.setTitle(articleForm.getTitle());
+        article.setDescription(articleForm.getDescription());
+        article.setSource(articleForm.getSource());
+        article.setUpdateTime(LocalDateTime.now());
+        switch (articleForm.getDivision()) {
+            case 0:
+                article.setDivision(ArticleThema.HUMOR);
+                break;
+            case 2:
+                article.setDivision(ArticleThema.QUESTION);
+                break;
+            default:
+                article.setDivision(ArticleThema.CHAT);
+        }
+        Article newArticle = this.articleRepository.save(article);
+        community.getArticle().add(newArticle);
+        this.communityRepository.save(community);
+
+        return newArticle;
     }
 }

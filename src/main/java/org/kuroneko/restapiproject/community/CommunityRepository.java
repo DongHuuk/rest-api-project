@@ -7,8 +7,5 @@ import org.springframework.data.querydsl.QuerydslPredicateExecutor;
 import java.util.List;
 
 public interface CommunityRepository extends JpaRepository<Community, Long>, QuerydslPredicateExecutor<Community> {
-
-    List<Community> findTop10ByOrderByCreateTimeDesc();
-
     Community findByTitle(String title);
 }

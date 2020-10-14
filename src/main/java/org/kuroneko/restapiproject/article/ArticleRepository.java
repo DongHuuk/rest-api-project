@@ -27,4 +27,8 @@ public interface ArticleRepository extends JpaRepository<Article, Long>, Queryds
     Page<Article> findByAccountIdAndCommunityId(Long accountId, Long communityId, Pageable pageable);
 
     Page<Article> findTop10ByOrderByCreateTimeDesc(Pageable pageable);
+
+    List<Article> findByCommunity(Community community);
+
+    Page<Article> findByCommunity(Community community, Pageable pageable);
 }
