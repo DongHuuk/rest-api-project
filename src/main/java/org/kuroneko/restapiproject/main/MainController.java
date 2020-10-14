@@ -14,7 +14,7 @@ import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
 @RestController
 public class MainController {
 
-    public static RepresentationModel getIndexLink() {
+    public static RepresentationModel getIndexLink(){
         var index = new RepresentationModel();
         index.add(linkTo(AccountController.class).withRel("index"));
 
@@ -33,17 +33,9 @@ public class MainController {
         return "index_Get";
     }
 
-<<<<<<< HEAD
     @PostMapping("/")
     public String index_post(Principal principal) {
         return "index_Post";
-=======
-    //추후에 Event를 설명하는 index 페이지를 따로 만들어서 그쪽을 가리키게끔 만드는 것
-    @GetMapping("/api")
-    public RepresentationModel apiIndex() {
-
-        return getIndexLink();
->>>>>>> 2610874ce5b33ab3ae254bb431af6eb7170d45d0
     }
 
     @GetMapping("/re")
