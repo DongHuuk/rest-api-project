@@ -14,6 +14,7 @@ import org.kuroneko.restapiproject.account.domain.AccountForm;
 import org.kuroneko.restapiproject.article.ArticleRepository;
 import org.kuroneko.restapiproject.article.domain.Article;
 import org.kuroneko.restapiproject.article.domain.ArticleForm;
+import org.kuroneko.restapiproject.article.domain.ArticleThema;
 import org.kuroneko.restapiproject.community.domain.Community;
 import org.kuroneko.restapiproject.community.domain.CommunityForm;
 import org.kuroneko.restapiproject.config.WithAccount;
@@ -30,9 +31,9 @@ import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
@@ -292,7 +293,12 @@ public class CommunityControllerTestWithArticle extends CommunityMethods {
     @Transactional
     public void findArticleInCommunity_unMatch_ArticleWithCommunity() throws Exception {
         Community community = createCommunityAndArticles("test@testT.com");
-        Community community_2 = createCommunityAndArticles("test@testT.com");
+
+        Account account = this.accountRepository.findByEmail("test@testT.com").orElseThrow();
+        CommunityForm communityForm = createCommunityForm(account.getUsername());
+        communityForm.setTitle("second Community Site");
+        Community community_2 = this.communityService.createCommunity(communityForm, account);
+        createArticleWithCommunity(community_2, account);
 
         List<Article> articleList = this.articleRepository.findByCommunity(community_2);
 
@@ -303,12 +309,367 @@ public class CommunityControllerTestWithArticle extends CommunityMethods {
     }
 
     @Test
+    @DisplayName("커뮤니티 내 게시글 삭제 - 200")
+    @WithAccount("test@testT.com")
+    @Transactional
+    public void deleteArticleInCommunity() throws Exception{
+        Account account = this.accountRepository.findByEmail("test@testT.com").orElseThrow();
+        Community community = this.createCommunityAndArticles("test@testT.com");
+        List<Article> articleList = this.articleRepository.findAll();
+        Article article = articleList.get(12);
+
+        this.mockMvc.perform(delete("/community/{id}/article/{articleId}",
+                community.getId(), article.getId())
+                .with(csrf()))
+                .andDo(print())
+                .andExpect(status().isNoContent());
+
+        Optional<Article> result = this.articleRepository.findById(article.getId());
+        assertTrue(result.isEmpty());
+        assertFalse(community.getArticle().contains(article));
+        assertFalse(account.getArticle().contains(article));
+    }
+
+    @Test
+    @DisplayName("커뮤니티 내 게시글 삭제(Principal) - 403")
+    @Transactional
+    public void deleteArticleInCommunity_Principal() throws Exception{
+        AccountForm accountForm = createAccountForm();
+        Account account = saveAccount(accountForm);
+        Community community = this.createCommunityAndArticles(account.getEmail());
+        List<Article> articleList = this.articleRepository.findAll();
+        Article article = articleList.get(12);
+
+        this.mockMvc.perform(delete("/community/{id}/article/{articleId}",
+                community.getId(), article.getId())
+                .with(csrf()))
+                .andDo(print())
+                .andExpect(status().isForbidden());
+
+        Optional<Article> result = this.articleRepository.findById(article.getId());
+        assertFalse(result.isEmpty());
+        assertTrue(community.getArticle().contains(article));
+        assertTrue(account.getArticle().contains(article));
+    }
+
+    @Test
+    @DisplayName("커뮤니티 내 게시글 삭제(Community Empty Checking) - 400")
+    @WithAccount("test@testT.com")
+    @Transactional
+    public void deleteArticleInCommunity_Community_Empty() throws Exception{
+        Account account = this.accountRepository.findByEmail("test@testT.com").orElseThrow();
+        Community community = this.createCommunityAndArticles("test@testT.com");
+        List<Article> articleList = this.articleRepository.findAll();
+        Article article = articleList.get(12);
+
+        this.mockMvc.perform(delete("/community/{id}/article/{articleId}",
+                1234567890, article.getId())
+                .with(csrf()))
+                .andDo(print())
+                .andExpect(status().isBadRequest());
+
+        Optional<Article> result = this.articleRepository.findById(article.getId());
+        assertFalse(result.isEmpty());
+        assertTrue(community.getArticle().contains(article));
+        assertTrue(account.getArticle().contains(article));
+    }
+
+    @Test
+    @DisplayName("커뮤니티 내 게시글 삭제(Article Empty Checking) - 400")
+    @WithAccount("test@testT.com")
+    @Transactional
+    public void deleteArticleInCommunity_Article_Empty() throws Exception{
+        Account account = this.accountRepository.findByEmail("test@testT.com").orElseThrow();
+        Community community = this.createCommunityAndArticles("test@testT.com");
+        List<Article> articleList = this.articleRepository.findAll();
+        Article article = articleList.get(12);
+
+        this.mockMvc.perform(delete("/community/{id}/article/{articleId}",
+                community.getId(), 1234567890)
+                .with(csrf()))
+                .andDo(print())
+                .andExpect(status().isBadRequest());
+
+        Optional<Article> result = this.articleRepository.findById(article.getId());
+        assertFalse(result.isEmpty());
+        assertTrue(community.getArticle().contains(article));
+        assertTrue(account.getArticle().contains(article));
+    }
+
+    @Test
+    @DisplayName("커뮤니티 내 게시글 삭제(Article unMatch By Community) - 400")
+    @WithAccount("test@testT.com")
+    @Transactional
+    public void deleteArticleInCommunity_unMatchCommunity() throws Exception{
+        Account account = this.accountRepository.findByEmail("test@testT.com").orElseThrow();
+        Community community = this.createCommunityAndArticles("test@testT.com");
+
+        CommunityForm communityForm = createCommunityForm(account.getUsername());
+        communityForm.setTitle("second Community Site");
+        Community community_2 = this.communityService.createCommunity(communityForm, account);
+        createArticleWithCommunity(community_2, account);
+
+        List<Article> articleList = this.articleRepository.findByCommunity(community);
+        Article article = articleList.get(12);
+
+        this.mockMvc.perform(delete("/community/{id}/article/{articleId}",
+                community_2.getId(), article.getId())
+                .with(csrf()))
+                .andDo(print())
+                .andExpect(status().isBadRequest());
+
+        Optional<Article> result = this.articleRepository.findById(article.getId());
+        assertFalse(result.isEmpty());
+        assertTrue(community.getArticle().contains(article));
+        assertTrue(account.getArticle().contains(article));
+    }
+
+    @Test
     @DisplayName("커뮤니티 내 게시글 수정 - 200")
     @WithAccount("test@testT.com")
     @Transactional
     public void updateArticleWithCommunity() throws Exception {
         Community community = createCommunityAndArticles("test@testT.com");
+        List<Article> articleList = this.articleRepository.findAll();
+        Article article = articleList.get(5);
+        article.setDivision(ArticleThema.HUMOR);
+        ArticleForm articleForm = createArticleForm(0);
+        articleForm.setDivision(1);
+        articleForm.setTitle("Update Article Title");
 
-//        this.mockMvc.perform(put("/community/{id}/article/{articleId}/modify", ))
+        this.mockMvc.perform(put("/community/{id}/article/{articleId}/modify",
+                community.getId(), article.getId())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(this.objectMapper.writeValueAsString(articleForm))
+                .with(csrf()))
+                .andDo(print())
+                .andExpect(status().isOk());
+
+        Article newArticle = this.articleRepository.findById(article.getId()).orElseThrow();
+        assertEquals(newArticle.getTitle(), articleForm.getTitle());
+        assertEquals(newArticle.getDivision(), ArticleThema.CHAT);
     }
+
+    @Test
+    @DisplayName("커뮤니티 내 게시글 수정 (Principal Error) - 403")
+    @Transactional
+    public void updateArticleWithCommunity_Principal() throws Exception {
+        AccountForm accountForm = createAccountForm();
+        Account account = saveAccount(accountForm);
+        Community community = createCommunityAndArticles(account.getEmail());
+        List<Article> articleList = this.articleRepository.findAll();
+        Article article = articleList.get(5);
+        article.setDivision(ArticleThema.HUMOR);
+        ArticleForm articleForm = createArticleForm(0);
+        articleForm.setDivision(1);
+        articleForm.setTitle("Update Article Title");
+
+        this.mockMvc.perform(put("/community/{id}/article/{articleId}/modify",
+                community.getId(), article.getId())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(this.objectMapper.writeValueAsString(articleForm))
+                .with(csrf()))
+                .andDo(print())
+                .andExpect(status().isForbidden());
+
+        Article newArticle = this.articleRepository.findById(article.getId()).orElseThrow();
+        assertNotEquals(newArticle.getTitle(), articleForm.getTitle());
+        assertNotEquals(newArticle.getDivision(), ArticleThema.CHAT);
+    }
+
+    @Test
+    @DisplayName("커뮤니티 내 게시글 수정 (ArticleForm Title Error) - 400")
+    @WithAccount("test@testT.com")
+    @Transactional
+    public void updateArticleWithCommunity_ArticleFormByTitle() throws Exception {
+        Community community = createCommunityAndArticles("test@testT.com");
+        List<Article> articleList = this.articleRepository.findAll();
+        Article article = articleList.get(5);
+        article.setDivision(ArticleThema.HUMOR);
+        ArticleForm articleForm = createArticleForm(0);
+        articleForm.setDivision(1);
+        articleForm.setTitle("");
+
+        this.mockMvc.perform(put("/community/{id}/article/{articleId}/modify",
+                community.getId(), article.getId())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(this.objectMapper.writeValueAsString(articleForm))
+                .with(csrf()))
+                .andDo(print())
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("errors").exists());
+
+        Article newArticle = this.articleRepository.findById(article.getId()).orElseThrow();
+        assertNotEquals(newArticle.getTitle(), articleForm.getTitle());
+        assertNotEquals(newArticle.getDivision(), ArticleThema.CHAT);
+    }
+
+    @Test
+    @DisplayName("커뮤니티 내 게시글 수정 (ArticleForm Maximum Title Error) - 400")
+    @WithAccount("test@testT.com")
+    @Transactional
+    public void updateArticleWithCommunity_ArticleFormByMaximumTitle() throws Exception {
+        Community community = createCommunityAndArticles("test@testT.com");
+        List<Article> articleList = this.articleRepository.findAll();
+        Article article = articleList.get(5);
+        article.setDivision(ArticleThema.HUMOR);
+        ArticleForm articleForm = createArticleForm(0);
+        articleForm.setDivision(1);
+        articleForm.setTitle("qwertyuiopqwertyuiopqwertyuiopqwertyuiopqwertyuiopq");
+
+        this.mockMvc.perform(put("/community/{id}/article/{articleId}/modify",
+                community.getId(), article.getId())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(this.objectMapper.writeValueAsString(articleForm))
+                .with(csrf()))
+                .andDo(print())
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("errors").exists());
+
+        Article newArticle = this.articleRepository.findById(article.getId()).orElseThrow();
+        assertNotEquals(newArticle.getTitle(), articleForm.getTitle());
+        assertNotEquals(newArticle.getDivision(), ArticleThema.CHAT);
+    }
+
+    @Test
+    @DisplayName("커뮤니티 내 게시글 수정 (ArticleForm Description Error) - 400")
+    @WithAccount("test@testT.com")
+    @Transactional
+    public void updateArticleWithCommunity_ArticleFormByDescription() throws Exception {
+        Community community = createCommunityAndArticles("test@testT.com");
+        List<Article> articleList = this.articleRepository.findAll();
+        Article article = articleList.get(5);
+        article.setDivision(ArticleThema.HUMOR);
+        ArticleForm articleForm = createArticleForm(0);
+        articleForm.setDivision(1);
+        articleForm.setDescription("");
+
+        this.mockMvc.perform(put("/community/{id}/article/{articleId}/modify",
+                community.getId(), article.getId())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(this.objectMapper.writeValueAsString(articleForm))
+                .with(csrf()))
+                .andDo(print())
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("errors").exists());
+
+        Article newArticle = this.articleRepository.findById(article.getId()).orElseThrow();
+        assertNotEquals(newArticle.getDescription(), articleForm.getDescription());
+        assertNotEquals(newArticle.getDivision(), ArticleThema.CHAT);
+    }
+
+    @Test
+    @DisplayName("커뮤니티 내 게시글 수정 (CommunityId Error) - 400")
+    @WithAccount("test@testT.com")
+    @Transactional
+    public void updateArticleWithCommunity_CommunityId() throws Exception {
+        Community community = createCommunityAndArticles("test@testT.com");
+        List<Article> articleList = this.articleRepository.findAll();
+        Article article = articleList.get(5);
+        article.setDivision(ArticleThema.HUMOR);
+        ArticleForm articleForm = createArticleForm(0);
+        articleForm.setDivision(1);
+        articleForm.setTitle("update Article Title");
+
+        this.mockMvc.perform(put("/community/{id}/article/{articleId}/modify",
+                1928375, article.getId())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(this.objectMapper.writeValueAsString(articleForm))
+                .with(csrf()))
+                .andDo(print())
+                .andExpect(status().isBadRequest());
+
+        Article newArticle = this.articleRepository.findById(article.getId()).orElseThrow();
+        assertNotEquals(newArticle.getTitle(), articleForm.getTitle());
+        assertNotEquals(newArticle.getDivision(), ArticleThema.CHAT);
+    }
+
+    @Test
+    @DisplayName("커뮤니티 내 게시글 수정 (ArticleId Error) - 400")
+    @WithAccount("test@testT.com")
+    @Transactional
+    public void updateArticleWithCommunity_ArticleId() throws Exception {
+        Community community = createCommunityAndArticles("test@testT.com");
+        List<Article> articleList = this.articleRepository.findAll();
+        Article article = articleList.get(5);
+        article.setDivision(ArticleThema.HUMOR);
+        ArticleForm articleForm = createArticleForm(0);
+        articleForm.setDivision(1);
+        articleForm.setTitle("update Article Title");
+
+        this.mockMvc.perform(put("/community/{id}/article/{articleId}/modify",
+                community.getId(), 1827301)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(this.objectMapper.writeValueAsString(articleForm))
+                .with(csrf()))
+                .andDo(print())
+                .andExpect(status().isBadRequest());
+
+        Article newArticle = this.articleRepository.findById(article.getId()).orElseThrow();
+        assertNotEquals(newArticle.getTitle(), articleForm.getTitle());
+        assertNotEquals(newArticle.getDivision(), ArticleThema.CHAT);
+    }
+
+    @Test
+    @DisplayName("커뮤니티 내 게시글 수정 (Article Match Problem(article and community)) - 400")
+    @WithAccount("test@testT.com")
+    @Transactional
+    public void updateArticleWithCommunity_ArticleMatchProblem() throws Exception {
+        AccountForm accountForm = createAccountForm();
+        Account newAccount = saveAccount(accountForm);
+        Community community = createCommunityAndArticles("test@testT.com");
+
+        CommunityForm communityForm = createCommunityForm(newAccount.getUsername());
+        communityForm.setTitle("second Community Site");
+        Community community_2 = this.communityService.createCommunity(communityForm, newAccount);
+        createArticleWithCommunity(community, newAccount);
+
+        List<Article> articleList = this.articleRepository.findByCommunity(community);
+        Article article = articleList.get(5);
+        article.setDivision(ArticleThema.HUMOR);
+        ArticleForm articleForm = createArticleForm(0);
+        articleForm.setDivision(1);
+        articleForm.setTitle("update Article Title");
+
+        this.mockMvc.perform(put("/community/{id}/article/{articleId}/modify",
+                community_2.getId(), article.getId())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(this.objectMapper.writeValueAsString(articleForm))
+                .with(csrf()))
+                .andDo(print())
+                .andExpect(status().isBadRequest());
+
+        Article newArticle = this.articleRepository.findById(article.getId()).orElseThrow();
+        assertNotEquals(newArticle.getTitle(), articleForm.getTitle());
+        assertNotEquals(newArticle.getDivision(), ArticleThema.CHAT);
+    }
+
+    @Test
+    @DisplayName("커뮤니티 내 게시글 수정 (Article Match Problem(article and account)) - 400")
+    @WithAccount("test@testT.com")
+    @Transactional
+    public void updateArticleWithCommunity_ArticleMatchProblem_2() throws Exception {
+        AccountForm accountForm = createAccountForm();
+        Account newAccount = saveAccount(accountForm);
+        Community community = createCommunityAndArticles(newAccount.getEmail());
+        List<Article> articleList = this.articleRepository.findByCommunity(community);
+        Article article = articleList.get(5);
+        article.setDivision(ArticleThema.HUMOR);
+        ArticleForm articleForm = createArticleForm(0);
+        articleForm.setDivision(1);
+        articleForm.setTitle("update Article Title");
+
+        this.mockMvc.perform(put("/community/{id}/article/{articleId}/modify",
+                community.getId(), article.getId())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(this.objectMapper.writeValueAsString(articleForm))
+                .with(csrf()))
+                .andDo(print())
+                .andExpect(status().isBadRequest());
+
+        Article newArticle = this.articleRepository.findById(article.getId()).orElseThrow();
+        assertNotEquals(newArticle.getTitle(), articleForm.getTitle());
+        assertNotEquals(newArticle.getDivision(), ArticleThema.CHAT);
+    }
+
 }

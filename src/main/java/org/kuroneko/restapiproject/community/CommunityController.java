@@ -12,6 +12,9 @@ import org.kuroneko.restapiproject.article.domain.Article;
 import org.kuroneko.restapiproject.article.domain.ArticleDTO;
 import org.kuroneko.restapiproject.article.domain.ArticleForm;
 import org.kuroneko.restapiproject.article.domain.ArticleThema;
+import org.kuroneko.restapiproject.comments.CommentsRepository;
+import org.kuroneko.restapiproject.comments.CommentsService;
+import org.kuroneko.restapiproject.comments.domain.CommentForm;
 import org.kuroneko.restapiproject.community.domain.Community;
 import org.kuroneko.restapiproject.community.domain.CommunityForm;
 import org.kuroneko.restapiproject.community.validation.ArticleValidator;
@@ -29,6 +32,7 @@ import org.springframework.hateoas.server.mvc.WebMvcLinkBuilder;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.Errors;
 import org.springframework.web.bind.WebDataBinder;
 import org.springframework.web.bind.annotation.*;
@@ -48,6 +52,8 @@ public class CommunityController {
     @Autowired private CommunityRepository communityRepository;
     @Autowired private ArticleValidator articleValidator;
     @Autowired private ArticleRepository articleRepository;
+    @Autowired private CommentsRepository commentsRepository;
+    @Autowired private CommentsService commentsService;
 
     private ResponseEntity processingByfindArticleWithCommunity(Link link){
         CommunityResource resource = new CommunityResource();
@@ -228,6 +234,34 @@ public class CommunityController {
         return new ResponseEntity(resource, HttpStatus.OK);
     }
 
+    @DeleteMapping("/{id}/article/{articleId}")
+    public ResponseEntity deleteArticleInCommunity(@CurrentAccount Account account,
+                                                    @PathVariable("id") Long communityId,
+                                                    @PathVariable("articleId") Long articleId) {
+        if (account == null) {
+            return new ResponseEntity(HttpStatus.FORBIDDEN);
+        }
+
+        Optional<Community> communityRepositoryById = this.communityRepository.findById(communityId);
+        Optional<Article> articleRepositoryById = this.articleRepository.findById(articleId);
+        if (communityRepositoryById.isEmpty() || articleRepositoryById.isEmpty()) {
+            return new ResponseEntity(HttpStatus.BAD_REQUEST);
+        }
+
+        Article article = articleRepositoryById.get();
+        Community community = communityRepositoryById.get();
+        if (!article.getCommunity().equals(community)) {
+            return new ResponseEntity(HttpStatus.BAD_REQUEST);
+        }
+        this.communityService.deleteArticleInCommunity(article, community, account);
+
+        HttpHeaders httpHeaders = new HttpHeaders();
+        httpHeaders.setLocation(linkTo(CommunityController.class).slash(community.getId())
+                .withRel("get Community").toUri());
+
+        return new ResponseEntity(httpHeaders, HttpStatus.NO_CONTENT);
+    }
+
     @GetMapping("/{id}/article/{articleId}/modify")
     public ResponseEntity findArticleWithCommunity(@CurrentAccount Account account,
                                                      @PathVariable("id") Long communityId,
@@ -289,6 +323,36 @@ public class CommunityController {
                 .withRel("create Article In Community"));
 
         return new ResponseEntity(resource, HttpStatus.OK);
+    }
+
+    @PostMapping("/{id}/article/{articleId}/comments")
+    @Transactional
+    public ResponseEntity saveComment(@CurrentAccount Account account, @PathVariable("id") Long communityId,
+                                      @PathVariable("articleId") Long articleId,
+                                      @RequestBody @Valid CommentForm commentForm, Errors errors) {
+        if (account == null) {
+            return new ResponseEntity(HttpStatus.FORBIDDEN);
+        }
+
+        if (errors.hasErrors()) {
+            return new ResponseEntity(new ErrorsResource(errors), HttpStatus.BAD_REQUEST);
+        }
+
+        Optional<Community> communityRepositoryById = this.communityRepository.findById(communityId);
+        Optional<Article> articleRepositoryById = this.articleRepository.findById(articleId);
+        if (communityRepositoryById.isEmpty() || articleRepositoryById.isEmpty()) {
+            return new ResponseEntity(HttpStatus.BAD_REQUEST);
+        }
+
+        Article article = articleRepositoryById.get();
+        Community community = communityRepositoryById.get();
+        if (!article.getCommunity().equals(community)) {
+            return new ResponseEntity(HttpStatus.BAD_REQUEST);
+        }
+
+        this.commentsService.createComments(commentForm, account, article);
+
+        return new ResponseEntity(HttpStatus.CREATED);
     }
 
 }

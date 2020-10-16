@@ -7,6 +7,8 @@ import org.kuroneko.restapiproject.article.domain.Article;
 import org.kuroneko.restapiproject.article.domain.ArticleDTO;
 import org.kuroneko.restapiproject.article.domain.ArticleForm;
 import org.kuroneko.restapiproject.article.domain.ArticleThema;
+import org.kuroneko.restapiproject.comments.CommentsRepository;
+import org.kuroneko.restapiproject.comments.domain.Comments;
 import org.kuroneko.restapiproject.community.domain.Community;
 import org.kuroneko.restapiproject.community.domain.CommunityForm;
 import org.modelmapper.ModelMapper;
@@ -27,6 +29,7 @@ public class CommunityService {
     @Autowired AccountRepository accountRepository;
     @Autowired ArticleRepository articleRepository;
     @Autowired ModelMapper modelMapper;
+    @Autowired CommentsRepository commentsRepository;
 
     public Community createCommunity(CommunityForm communityForm, Account account) {
         Community community = new Community();
@@ -73,6 +76,7 @@ public class CommunityService {
         article.setNumber(count);
         Article newArticle = this.articleRepository.save(article);
         community.getArticle().add(newArticle);
+        account.getArticle().add(newArticle);
         this.communityRepository.save(community);
 
         return newArticle;
@@ -131,5 +135,13 @@ public class CommunityService {
         this.communityRepository.save(community);
 
         return newArticle;
+    }
+
+    public void deleteArticleInCommunity(Article article, Community community, Account account) {
+        community.getArticle().remove(article);
+        account.getArticle().remove(article);
+        List<Comments> byArticle = this.commentsRepository.findByArticle(article);
+        this.commentsRepository.deleteInBatch(byArticle);
+        this.articleRepository.delete(article);
     }
 }

@@ -18,5 +18,7 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
     protected void configure(HttpSecurity http) throws Exception {
         http.authorizeRequests()
                 .mvcMatchers("/", "/accounts/**", "/checkbox/test").permitAll();
+
+        http.formLogin().disable();
     }
 }

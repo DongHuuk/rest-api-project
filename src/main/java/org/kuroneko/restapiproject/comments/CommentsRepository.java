@@ -1,5 +1,6 @@
 package org.kuroneko.restapiproject.comments;
 
+import org.kuroneko.restapiproject.article.domain.Article;
 import org.kuroneko.restapiproject.comments.domain.Comments;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -17,4 +18,6 @@ public interface CommentsRepository extends JpaRepository<Comments, Long>, Query
     @Modifying
     @Query("delete from Comments c where c.id in :ids")
     void deleteAllByIdInQuery(@Param("ids") List<Long> ids);
+
+    List<Comments> findByArticle(Article article);
 }

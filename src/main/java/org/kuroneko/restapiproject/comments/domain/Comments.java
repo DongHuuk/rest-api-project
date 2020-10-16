@@ -34,7 +34,7 @@ public class Comments {
     //신고하기
     private int report;
 
-    private int originNo; //checking sub comments
+    private boolean originNo; //checking sub comments
 
     private int groupOrd; // 댓글 - 0 , 댓답글 - 1
 
