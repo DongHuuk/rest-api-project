@@ -5,7 +5,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.kuroneko.restapiproject.account.validation.AccountPasswordValidation;
 import org.kuroneko.restapiproject.account.validation.AccountValidation;
 import org.kuroneko.restapiproject.article.domain.ArticleDTO;
-import org.kuroneko.restapiproject.article.domain.ArticleForm;
 import org.kuroneko.restapiproject.comments.CommentsDTO;
 import org.kuroneko.restapiproject.account.domain.Account;
 import org.kuroneko.restapiproject.account.domain.AccountForm;
@@ -13,6 +12,7 @@ import org.kuroneko.restapiproject.account.domain.AccountPasswordForm;
 import org.kuroneko.restapiproject.errors.ErrorsResource;
 import org.kuroneko.restapiproject.main.MainController;
 import org.kuroneko.restapiproject.notification.NotificationDTO;
+import org.kuroneko.restapiproject.token.CurrentAccount;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -350,5 +350,4 @@ public class AccountController {
 
         return new ResponseEntity(httpHeaders, HttpStatus.NO_CONTENT);
     }
-
 }

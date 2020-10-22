@@ -57,6 +57,9 @@ public class Account {
     @JsonManagedReference
     private Set<Notification> notification = new HashSet<>();
 
+    @Column(nullable = false, columnDefinition = "BOOLEAN DEFAULT true")
+    private Boolean isEnable = true;
+
     public void setArticle(Article article){
         this.article.add(article);
         if (article.getAccount() == null) {

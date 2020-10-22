@@ -1,4 +1,4 @@
-package org.kuroneko.restapiproject.account;
+package org.kuroneko.restapiproject.token;
 
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 

@@ -11,10 +11,14 @@ import org.kuroneko.restapiproject.RestDocsConfiguration;
 import org.kuroneko.restapiproject.account.AccountRepository;
 import org.kuroneko.restapiproject.account.domain.Account;
 import org.kuroneko.restapiproject.account.domain.AccountForm;
+import org.kuroneko.restapiproject.account.domain.UserAuthority;
 import org.kuroneko.restapiproject.article.ArticleRepository;
 import org.kuroneko.restapiproject.article.domain.Article;
 import org.kuroneko.restapiproject.article.domain.ArticleForm;
 import org.kuroneko.restapiproject.article.domain.ArticleThema;
+import org.kuroneko.restapiproject.comments.CommentsRepository;
+import org.kuroneko.restapiproject.comments.domain.CommentForm;
+import org.kuroneko.restapiproject.comments.domain.Comments;
 import org.kuroneko.restapiproject.community.domain.Community;
 import org.kuroneko.restapiproject.community.domain.CommunityForm;
 import org.kuroneko.restapiproject.config.WithAccount;
@@ -32,6 +36,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
@@ -60,6 +65,8 @@ public class CommunityControllerTestWithArticle extends CommunityMethods {
     private CommunityRepository communityRepository;
     @Autowired
     private ArticleRepository articleRepository;
+    @Autowired
+    private CommentsRepository commentsRepository;
 
     @AfterEach
     private void deleteAll() {
@@ -670,6 +677,64 @@ public class CommunityControllerTestWithArticle extends CommunityMethods {
         Article newArticle = this.articleRepository.findById(article.getId()).orElseThrow();
         assertNotEquals(newArticle.getTitle(), articleForm.getTitle());
         assertNotEquals(newArticle.getDivision(), ArticleThema.CHAT);
+    }
+
+    @Test
+    @DisplayName("커뮤니티 내 게시글 내 댓글 생성 - 201")
+    @WithAccount("test@testT.com")
+    @Transactional
+    public void createComment() throws Exception {
+        Account account = this.accountRepository.findByEmail("test@testT.com").orElseThrow();
+        account.setAuthority(UserAuthority.ROOT);
+        Community community = createCommunityAndArticles("test@testT.com");
+        CommentForm commentForm = new CommentForm();
+        commentForm.setDescription("Test Description");
+        List<Article> all = this.articleRepository.findAll();
+        Article article = all.get(15);
+
+        this.mockMvc.perform(post("/community/{communityId}/article/{articleId}/comments"
+                , community.getId(), article.getId())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(this.objectMapper.writeValueAsString(commentForm))
+                .with(csrf()))
+                .andDo(print())
+                .andExpect(status().isCreated());
+
+        List<Comments> commentsList = this.commentsRepository.findAll();
+        assertEquals(commentsList.size(), 1);
+        Comments comments = commentsList.get(0);
+        assertEquals(commentForm.getDescription(), commentForm.getDescription());
+        assertTrue(article.getComments().contains(comments));
+        assertTrue(account.getComments().contains(comments));
+    }
+
+    @Test
+    @DisplayName("커뮤니티 내 게시글 내 댓글 생성 (FORBIDDEN) - 403")
+    @WithAccount("test@testT.com")
+    @Transactional
+    public void createComment_FORBIDDEN() throws Exception {
+        Account account = this.accountRepository.findByEmail("test@testT.com").orElseThrow();
+        account.setAuthority(UserAuthority.ROOT);
+        Community community = createCommunityAndArticles("test@testT.com");
+        CommentForm commentForm = new CommentForm();
+        commentForm.setDescription("Test Description");
+        List<Article> all = this.articleRepository.findAll();
+        Article article = all.get(15);
+
+        this.mockMvc.perform(post("/community/{communityId}/article/{articleId}/comments"
+                , community.getId(), article.getId())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(this.objectMapper.writeValueAsString(commentForm))
+                .with(csrf()))
+                .andDo(print())
+                .andExpect(status().isCreated());
+
+        List<Comments> commentsList = this.commentsRepository.findAll();
+        assertEquals(commentsList.size(), 1);
+        Comments comments = commentsList.get(0);
+        assertEquals(commentForm.getDescription(), commentForm.getDescription());
+        assertTrue(article.getComments().contains(comments));
+        assertTrue(account.getComments().contains(comments));
     }
 
 }

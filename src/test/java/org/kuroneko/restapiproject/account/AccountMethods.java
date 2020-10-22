@@ -13,6 +13,8 @@ import org.kuroneko.restapiproject.comments.CommentsRepository;
 import org.kuroneko.restapiproject.comments.domain.Comments;
 import org.kuroneko.restapiproject.notification.NotificationRepository;
 import org.kuroneko.restapiproject.notification.domain.Notification;
+import org.kuroneko.restapiproject.token.AccountVO;
+import org.kuroneko.restapiproject.token.AccountVORepository;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -33,6 +35,7 @@ public class AccountMethods {
     @Autowired private ArticleRepository articleRepository;
     @Autowired private CommentsRepository commentsRepository;
     @Autowired private NotificationRepository notificationRepository;
+    @Autowired private AccountVORepository accountVORepository;
 
     public AccountForm createAccountForm(){
         AccountForm accountForm = new AccountForm();
@@ -48,7 +51,6 @@ public class AccountMethods {
         account.setAuthority(UserAuthority.USER);
         account.setCreateTime(LocalDateTime.now());
         account.setPassword(this.passwordEncoder.encode(accountForm.getPassword()));
-
         return accountRepository.save(account);
     }
 

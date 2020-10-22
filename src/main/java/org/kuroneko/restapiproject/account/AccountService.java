@@ -1,6 +1,7 @@
 package org.kuroneko.restapiproject.account;
 
 import javassist.NotFoundException;
+import lombok.extern.slf4j.Slf4j;
 import org.kuroneko.restapiproject.account.domain.Account;
 import org.kuroneko.restapiproject.account.domain.AccountForm;
 import org.kuroneko.restapiproject.account.domain.UserAuthority;
@@ -22,9 +23,13 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.Errors;
 
 import java.time.LocalDateTime;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @Transactional
 public class AccountService {
@@ -214,6 +219,4 @@ public class AccountService {
             return c;
         });
     }
-
-
 }

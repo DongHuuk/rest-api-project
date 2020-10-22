@@ -3,7 +3,7 @@ package org.kuroneko.restapiproject.community;
 import lombok.extern.slf4j.Slf4j;
 import org.kuroneko.restapiproject.account.AccountController;
 import org.kuroneko.restapiproject.account.AccountRepository;
-import org.kuroneko.restapiproject.account.CurrentAccount;
+import org.kuroneko.restapiproject.token.CurrentAccount;
 import org.kuroneko.restapiproject.account.domain.Account;
 import org.kuroneko.restapiproject.account.domain.UserAuthority;
 import org.kuroneko.restapiproject.article.ArticleRepository;
@@ -15,6 +15,7 @@ import org.kuroneko.restapiproject.article.domain.ArticleThema;
 import org.kuroneko.restapiproject.comments.CommentsRepository;
 import org.kuroneko.restapiproject.comments.CommentsService;
 import org.kuroneko.restapiproject.comments.domain.CommentForm;
+import org.kuroneko.restapiproject.comments.domain.Comments;
 import org.kuroneko.restapiproject.community.domain.Community;
 import org.kuroneko.restapiproject.community.domain.CommunityForm;
 import org.kuroneko.restapiproject.community.validation.ArticleValidator;
@@ -327,7 +328,7 @@ public class CommunityController {
 
     @PostMapping("/{id}/article/{articleId}/comments")
     @Transactional
-    public ResponseEntity saveComment(@CurrentAccount Account account, @PathVariable("id") Long communityId,
+    public ResponseEntity createComment(@CurrentAccount Account account, @PathVariable("id") Long communityId,
                                       @PathVariable("articleId") Long articleId,
                                       @RequestBody @Valid CommentForm commentForm, Errors errors) {
         if (account == null) {
@@ -353,6 +354,64 @@ public class CommunityController {
         this.commentsService.createComments(commentForm, account, article);
 
         return new ResponseEntity(HttpStatus.CREATED);
+    }
+
+    @PutMapping("/{id}/article/{articleId}/comments/{commentsId}")
+    @Transactional
+    public ResponseEntity updateComment(@CurrentAccount Account account, @PathVariable("id") Long communityId,
+                                      @PathVariable("articleId") Long articleId, @PathVariable("commentsId") Long commentId,
+                                      @RequestBody @Valid CommentForm commentForm, Errors errors) {
+        if (account == null) {
+            return new ResponseEntity(HttpStatus.FORBIDDEN);
+        }
+
+        if (errors.hasErrors()) {
+            return new ResponseEntity(new ErrorsResource(errors), HttpStatus.BAD_REQUEST);
+        }
+
+        Optional<Community> communityRepositoryById = this.communityRepository.findById(communityId);
+        Optional<Article> articleRepositoryById = this.articleRepository.findById(articleId);
+        Optional<Comments> commentsRepositoryById = this.commentsRepository.findById(commentId);
+        if (communityRepositoryById.isEmpty() || articleRepositoryById.isEmpty() || commentsRepositoryById.isEmpty()) {
+            return new ResponseEntity(HttpStatus.BAD_REQUEST);
+        }
+
+        Article article = articleRepositoryById.get();
+        Community community = communityRepositoryById.get();
+        if (!article.getCommunity().equals(community)) {
+            return new ResponseEntity(HttpStatus.BAD_REQUEST);
+        }
+
+        this.commentsService.updateComments(commentForm, commentsRepositoryById.get());
+
+        return new ResponseEntity(HttpStatus.OK);
+    }
+
+    @DeleteMapping("/{id}/article/{articleId}/comments/{commentsId}")
+    @Transactional
+    public ResponseEntity deleteComment(@CurrentAccount Account account, @PathVariable("id") Long communityId,
+                                        @PathVariable("articleId") Long articleId,
+                                        @PathVariable("commentsId") Long commentId) {
+        if (account == null) {
+            return new ResponseEntity(HttpStatus.FORBIDDEN);
+        }
+
+        Optional<Community> communityRepositoryById = this.communityRepository.findById(communityId);
+        Optional<Article> articleRepositoryById = this.articleRepository.findById(articleId);
+        Optional<Comments> commentsRepositoryById = this.commentsRepository.findById(commentId);
+        if (communityRepositoryById.isEmpty() || articleRepositoryById.isEmpty() || commentsRepositoryById.isEmpty()) {
+            return new ResponseEntity(HttpStatus.BAD_REQUEST);
+        }
+
+        Article article = articleRepositoryById.get();
+        Community community = communityRepositoryById.get();
+        if (!article.getCommunity().equals(community)) {
+            return new ResponseEntity(HttpStatus.BAD_REQUEST);
+        }
+
+        this.commentsService.deleteComments(article, account, commentsRepositoryById.get());
+
+        return new ResponseEntity(HttpStatus.NO_CONTENT);
     }
 
 }

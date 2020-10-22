@@ -6,6 +6,7 @@ import org.kuroneko.restapiproject.article.ArticleRepository;
 import org.kuroneko.restapiproject.article.domain.Article;
 import org.kuroneko.restapiproject.comments.domain.CommentForm;
 import org.kuroneko.restapiproject.comments.domain.Comments;
+import org.kuroneko.restapiproject.community.domain.Community;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -34,5 +35,15 @@ public class CommentsService {
         this.commentsRepository.save(comments);
         article.getComments().add(comments);
         account.getComments().add(comments);
+    }
+
+    public void updateComments(CommentForm commentForm, Comments comments) {
+        comments.setDescription(commentForm.getDescription());
+    }
+
+    public void deleteComments(Article article, Account account, Comments comments) {
+        article.getComments().remove(comments);
+        account.getComments().remove(comments);
+        this.commentsRepository.delete(comments);
     }
 }

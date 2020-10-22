@@ -9,10 +9,12 @@ import org.kuroneko.restapiproject.RestDocsConfiguration;
 import org.kuroneko.restapiproject.account.domain.Account;
 import org.kuroneko.restapiproject.account.domain.AccountForm;
 import org.kuroneko.restapiproject.account.domain.AccountPasswordForm;
+import org.kuroneko.restapiproject.account.domain.LoginForm;
 import org.kuroneko.restapiproject.article.ArticleRepository;
 import org.kuroneko.restapiproject.comments.CommentsRepository;
 import org.kuroneko.restapiproject.config.WithAccount;
 import org.kuroneko.restapiproject.notification.NotificationRepository;
+import org.kuroneko.restapiproject.token.AccountVORepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.restdocs.AutoConfigureRestDocs;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -49,6 +51,7 @@ class AccountControllerTest extends AccountMethods{
     @Autowired private ArticleRepository articleRepository;
     @Autowired private CommentsRepository commentsRepository;
     @Autowired private NotificationRepository notificationRepository;
+    @Autowired private AccountVORepository accountVORepository;
 
     @AfterEach
     private void deleteAccountRepository_After(){
@@ -56,6 +59,7 @@ class AccountControllerTest extends AccountMethods{
         this.commentsRepository.deleteAll();
         this.articleRepository.deleteAll();
         this.accountRepository.deleteAll();
+        this.accountVORepository.deleteAll();
     }
 
     @Test
@@ -159,7 +163,6 @@ class AccountControllerTest extends AccountMethods{
 
     @Test
     @DisplayName("Account 조회 성공_success")
-    @WithAccount("Test@naver.com")
     public void sendAccount() throws Exception {
         AccountForm accountForm = createAccountForm();
         Account account = saveAccount(accountForm);
@@ -355,5 +358,20 @@ class AccountControllerTest extends AccountMethods{
                 .with(csrf()))
                 .andDo(print())
                 .andExpect(status().isNotFound());
+    }
+
+    @Test
+    public void tokenTest() throws Exception {
+        AccountForm accountForm = createAccountForm();
+        saveAccount(accountForm);
+        LoginForm loginForm = new LoginForm();
+        loginForm.setEmail("Test@email.com");
+        loginForm.setPassword("12341234");
+
+        this.mockMvc.perform(post("/login")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(this.objectMapper.writeValueAsString(loginForm))
+                .with(csrf()))
+                .andDo(print());
     }
 }
