@@ -14,13 +14,13 @@ public interface AccountRepository extends JpaRepository<Account, Long>, Queryds
     List<Account> findAllByUsername(String s);
 
     @EntityGraph(attributePaths = {"article"}, type = EntityGraph.EntityGraphType.LOAD)
-    Account findAccountWithArticleById(Long id);
+    Optional<Account> findAccountWithArticleById(Long id);
 
     @EntityGraph(attributePaths = {"comments"}, type = EntityGraph.EntityGraphType.LOAD)
-    Account findAccountWithCommentsById(Long id);
+    Optional<Account> findAccountWithCommentsById(Long id);
 
     @EntityGraph(attributePaths = {"notification"}, type = EntityGraph.EntityGraphType.LOAD)
-    Account findAccountWithNotificationById(Long id);
+    Optional<Account> findAccountWithNotificationById(Long id);
 
     Optional<Account> findByUsername(String userName);
 }

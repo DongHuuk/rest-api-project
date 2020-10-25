@@ -15,6 +15,7 @@ import org.kuroneko.restapiproject.notification.NotificationRepository;
 import org.kuroneko.restapiproject.notification.domain.Notification;
 import org.kuroneko.restapiproject.token.AccountVO;
 import org.kuroneko.restapiproject.token.AccountVORepository;
+import org.kuroneko.restapiproject.token.TokenUtils;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -36,22 +37,25 @@ public class AccountMethods {
     @Autowired private CommentsRepository commentsRepository;
     @Autowired private NotificationRepository notificationRepository;
     @Autowired private AccountVORepository accountVORepository;
+    @Autowired private AccountService accountService;
+
+    public String createToken(Account account) {
+        return TokenUtils.generateJwtToken(this.accountVORepository
+                .findByEmail(account.getEmail()).orElseThrow());
+    }
 
     public AccountForm createAccountForm(){
         AccountForm accountForm = new AccountForm();
-        accountForm.setEmail("Test@email.com");
-        accountForm.setPassword("12341234");
-        accountForm.setCheckingPassword("12341234");
+        accountForm.setEmail("test@testT.com");
+        accountForm.setPassword("1234567890");
+        accountForm.setCheckingPassword("1234567890");
         accountForm.setUsername("Test Method User Create");
         return accountForm;
     }
 
     public Account saveAccount(AccountForm accountForm) {
         Account account = modelMapper.map(accountForm, Account.class);
-        account.setAuthority(UserAuthority.USER);
-        account.setCreateTime(LocalDateTime.now());
-        account.setPassword(this.passwordEncoder.encode(accountForm.getPassword()));
-        return accountRepository.save(account);
+        return this.accountService.createNewAccount(account);
     }
 
     public ArticleForm createArticleForm(int division){

@@ -14,10 +14,15 @@ public class JwtTokenInterceptor implements HandlerInterceptor {
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
         String header = request.getHeader(AuthConstants.AUTH_HEADER);
+        String method = request.getMethod();
+        String path = request.getPathInfo();
+        if (method.equalsIgnoreCase("post") && path.equals("/accounts")){
+            return true;
+        }
 
         if (header != null) {
-            String token = TokenUtils.getTokenFromHeader(header);
-            if (TokenUtils.isValidToken(token)) {
+//            String token = TokenUtils.getTokenFromHeader(header);
+            if (TokenUtils.isValidToken(header)) {
                 return true;
             }
         }

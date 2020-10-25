@@ -9,6 +9,11 @@ import javax.persistence.*;
 import java.io.Serializable;
 import java.time.LocalDateTime;
 
+/*
+    Seuciry의 Principal로써만 사용하기 위해 등록한 Object
+    기본적인 값은 Account와 동일
+ */
+
 @Entity
 @Table(name = "USER")
 @Getter
@@ -32,7 +37,8 @@ public class AccountVO implements Serializable {
     @Enumerated(EnumType.STRING)
     private UserAuthority authority;
 
-    @CreationTimestamp
+//    @CreationTimestamp
+    @Setter
     @Column(nullable = false, length = 20, updatable = false)
     private LocalDateTime createdAt;                        // 등록 일자
 

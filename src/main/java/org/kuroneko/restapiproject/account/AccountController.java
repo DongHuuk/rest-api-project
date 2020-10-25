@@ -12,6 +12,7 @@ import org.kuroneko.restapiproject.account.domain.AccountPasswordForm;
 import org.kuroneko.restapiproject.errors.ErrorsResource;
 import org.kuroneko.restapiproject.main.MainController;
 import org.kuroneko.restapiproject.notification.NotificationDTO;
+import org.kuroneko.restapiproject.token.AccountVO;
 import org.kuroneko.restapiproject.token.CurrentAccount;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -31,6 +32,7 @@ import org.springframework.validation.Errors;
 import org.springframework.web.bind.WebDataBinder;
 import org.springframework.web.bind.annotation.*;
 
+import javax.swing.text.html.Option;
 import javax.validation.Valid;
 import java.util.Optional;
 
@@ -106,17 +108,40 @@ public class AccountController {
         return accountResource;
     }
 
+    private boolean checkAccountVO(AccountVO accountVO) {
+        return accountVO == null;
+    }
+    private ResponseEntity returnFORBIDDEN(){
+        return new ResponseEntity(HttpStatus.FORBIDDEN);
+    }
+
+    private boolean checkErrors(Errors errors){
+        return errors.hasErrors();
+    }
+
+    private boolean checkId(Optional<?> objectOptional) {
+        return objectOptional.isEmpty();
+    }
+
+    private ResponseEntity returnNotFound(){
+        return new ResponseEntity(HttpStatus.NOT_FOUND);
+    }
+
+    private boolean checkEmail(String accountEmail, String accountVOEmail) {
+        return accountEmail.equals(accountVOEmail);
+    }
+
+    private ResponseEntity returnBadRequest(){
+        return new ResponseEntity(HttpStatus.BAD_REQUEST);
+    }
+
     @PostMapping
     public ResponseEntity createAccount(@RequestBody @Valid AccountForm accountForm, Errors errors){
-        if (errors.hasErrors()) {
-            return badRequest(errors);
-        }
+        if (this.checkErrors(errors)) return badRequest(errors);
 
         errors = accountService.checkAccountEmailAndUsername(accountForm, errors);
 
-        if (errors.hasErrors()) {
-            return badRequest(errors);
-        }
+        if (this.checkErrors(errors)) return badRequest(errors);
 
         Account newAccount = accountService.createNewAccount(modelMapper.map(accountForm, Account.class));
 
@@ -127,16 +152,12 @@ public class AccountController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity findAccount(@PathVariable Long id, @CurrentAccount Account account) {
-        if (account == null) {
-            return ResponseEntity.status(401).build();
-        }
+    public ResponseEntity findAccount(@CurrentAccount AccountVO accountVO, @PathVariable Long id) {
+        if (this.checkAccountVO(accountVO)) return this.returnFORBIDDEN();
 
         Optional<Account> byId = this.accountRepository.findById(id);
 
-        if (byId.isEmpty()) {
-            return ResponseEntity.notFound().build();
-        }
+        if (this.checkId(byId)) return this.returnNotFound();
 
         Account newAccount = byId.get();
         AccountResource accountResource = this.createAccountResource(newAccount, newAccount.getId());
@@ -144,64 +165,61 @@ public class AccountController {
 
         return new ResponseEntity(accountResource, HttpStatus.OK);
     }
+    //accountForm에서 Email의 값은 입력불가(수정불가)
 
     @PutMapping("/{id}")
-    public ResponseEntity updateAccount(@PathVariable Long id, @RequestBody @Valid AccountForm accountForm, Errors errors) {
-        if (errors.hasErrors()) {
-            return badRequest(errors);
-        }
-        Optional<Account> accountById = accountRepository.findById(id);
+    public ResponseEntity updateAccount(@CurrentAccount AccountVO accountVO,
+                                        @PathVariable Long id,
+                                        @RequestBody @Valid AccountForm accountForm, Errors errors) {
+        if (this.checkAccountVO(accountVO)) return this.returnFORBIDDEN();
+        if (this.checkErrors(errors)) return this.badRequest(errors);
 
-        if (accountById.isEmpty()) {
-            return ResponseEntity.notFound().build();
-        }
+        Optional<Account> accountById = accountRepository.findById(id);
+        if (this.checkId(accountById)) return this.returnNotFound();
+
         Account account = accountById.get();
 
         errors = accountService.checkUpdateAccount(accountForm, errors, account);
+        if (this.checkErrors(errors)) return this.badRequest(errors);
 
-        if (errors.hasErrors()) {
-            return badRequest(errors);
-        }
-
-        modelMapper.map(accountForm, account);
+        this.accountService.updateAccount(account, accountForm);
 
         AccountResource accountResource = this.createAccountResource(account.getId());
         accountResource.add(this.getDOSCURL("/docs/index.html#resources-account-update"));
 
         return new ResponseEntity(accountResource, HttpStatus.CREATED);
     }
-
     @DeleteMapping("/{id}")
-    public ResponseEntity deleteAccount(@PathVariable("id") Long id, @RequestBody @Valid AccountPasswordForm accountPasswordForm,
+    public ResponseEntity deleteAccount(@CurrentAccount AccountVO accountVO,
+                                        @PathVariable("id") Long id,
+                                        @RequestBody @Valid AccountPasswordForm accountPasswordForm,
                                         Errors errors) {
-        if (errors.hasErrors()) {
-            return this.badRequest(errors);
-        }
+        if(this.checkAccountVO(accountVO)) return this.returnFORBIDDEN();
+        if (this.checkErrors(errors)) return this.badRequest(errors);
         Optional<Account> byId = this.accountRepository.findById(id);
 
-        if (byId.isEmpty()) {
-            return ResponseEntity.notFound().build();
-        }
+        if (this.checkId(byId)) return this.returnNotFound();
 
-        this.accountService.deleteAccount(byId.get());
+        this.accountService.deleteAccount(byId.get(), accountPasswordForm);
 
         HttpHeaders httpHeaders = new HttpHeaders();
         httpHeaders.setLocation(linkTo(MainController.class).toUri());
 
         return new ResponseEntity(httpHeaders, HttpStatus.NO_CONTENT);
     }
+    //TODO 이 아래부터 작업 재개
 
-    //embeded로 한번 wrapping되는데 모르겟음
     @GetMapping("/{id}/articles")
-    public ResponseEntity findAccountsArticles(@CurrentAccount Account account, @PathVariable("id") Long id
+    public ResponseEntity findAccountsArticles(@CurrentAccount AccountVO accountVO, @PathVariable("id") Long id
                                             , @PageableDefault(sort = "createTime", direction = Sort.Direction.DESC) Pageable pageable,
                                                PagedResourcesAssembler<ArticleDTO> assembler) {
-        if (account == null) {
-            return ResponseEntity.notFound().build();
-        }
-        if (!account.getId().equals(id)) {
-            return ResponseEntity.badRequest().build();
-        }
+        if (this.checkAccountVO(accountVO)) return this.returnFORBIDDEN();
+
+        Optional<Account> byId = this.accountRepository.findById(id);
+        if(this.checkId(byId)) return this.returnNotFound();
+
+        Account account = byId.get();
+        if (this.checkEmail(account.getEmail(), accountVO.getEmail())) return this.returnBadRequest();
 
         Page<ArticleDTO> articleDTO = accountService.createPageableArticle(id, pageable, account);
         PagedModel<EntityModel<ArticleDTO>> getArticles = assembler.toModel(articleDTO, this.getAccountProfile(id));
@@ -213,48 +231,51 @@ public class AccountController {
         return new ResponseEntity(getArticles, HttpStatus.OK);
     }
 
+    private ResponseEntity returnNOCONTENT(HttpHeaders httpHeaders) {
+        return new ResponseEntity(httpHeaders, HttpStatus.NO_CONTENT);
+    }
+
     //checked 방식을 어떻게 할것인가. Ajax로 checked된 값을 ","로 구분하여 JSON으로 전송
     @DeleteMapping("/{id}/articles")
-    public ResponseEntity deleteAccountsArticles(@CurrentAccount Account account, @PathVariable("id") Long id,
+    public ResponseEntity deleteAccountsArticles(@CurrentAccount AccountVO accountVO, @PathVariable("id") Long id,
                                                  @RequestBody String checked, Errors errors) {
-        if (account == null) {
-            return ResponseEntity.notFound().build();
-        }
-        if (!account.getId().equals(id)) {
-            return ResponseEntity.badRequest().build();
-        }
-
-        Account accountWithArticle = accountRepository.findAccountWithArticleById(id);
-
+        if (this.checkAccountVO(accountVO)) return this.returnFORBIDDEN();
         HttpHeaders httpHeaders = new HttpHeaders();
         httpHeaders.setLocation(linkTo(AccountController.class).slash(id + "/articles").withRel("get Articles").toUri());
 
         if (checked == null) {
-            return new ResponseEntity(httpHeaders, HttpStatus.NO_CONTENT);
+            return this.returnNOCONTENT(httpHeaders);
         }
 
+        Optional<Account> accountWithArticleById = accountRepository.findAccountWithArticleById(id);
+        if(this.checkId(accountWithArticleById)) return this.returnNotFound();
+
+        Account account = accountWithArticleById.get();
+        if (this.checkEmail(account.getEmail(), accountVO.getEmail())) return this.returnBadRequest();
+
         try {
-            accountService.findArticlesAndDelete(accountWithArticle, checked);
+            accountService.findArticlesAndDelete(account, checked);
         } catch (NotFoundException e) {
             errors.rejectValue("number", "wrong.number", "not found articles by numbers");
             ErrorsResource errorsResource = new ErrorsResource(errors);
             return new ResponseEntity(errorsResource, HttpStatus.BAD_REQUEST);
         }
 
-        return new ResponseEntity(httpHeaders, HttpStatus.NO_CONTENT);
+        return this.returnNOCONTENT(httpHeaders);
     }
 
     //댓글들 리턴
     @GetMapping("/{id}/comments")
-    public ResponseEntity findAccountsComments(@CurrentAccount Account account, @PathVariable("id") Long id,
+    public ResponseEntity findAccountsComments(@CurrentAccount AccountVO accountVO, @PathVariable("id") Long id,
                                                @PageableDefault(sort = "createTime", direction = Sort.Direction.DESC) Pageable pageable,
                                                PagedResourcesAssembler<CommentsDTO> assembler) {
-        if (account == null) {
-            return ResponseEntity.notFound().build();
-        }
-        if (!account.getId().equals(id)) {
-            return ResponseEntity.badRequest().build();
-        }
+        if (this.checkAccountVO(accountVO)) return this.returnFORBIDDEN();
+
+        Optional<Account> byId = this.accountRepository.findById(id);
+        if(this.checkId(byId)) return this.returnNotFound();
+
+        Account account = byId.get();
+        if (this.checkEmail(account.getEmail(), accountVO.getEmail())) return this.returnBadRequest();
 
         Page<CommentsDTO> commentsDTO = accountService.createPageableComments(id, pageable, account);
         PagedModel<EntityModel<CommentsDTO>> getComments = assembler.toModel(commentsDTO, this.getAccountProfile(id));
@@ -268,47 +289,41 @@ public class AccountController {
 
     //checked 방식은 게시글과 동일
     @DeleteMapping("/{id}/comments")
-    public ResponseEntity deleteAccountsComments(@CurrentAccount Account account, @PathVariable("id") Long id,
+    public ResponseEntity deleteAccountsComments(@CurrentAccount AccountVO accountVO, @PathVariable("id") Long id,
                                                  @RequestBody String checked, Errors errors) {
-        if (account == null) {
-            return ResponseEntity.notFound().build();
-        }
-        if (!account.getId().equals(id)) {
-            return ResponseEntity.badRequest().build();
-        }
+        if (this.checkAccountVO(accountVO)) return this.returnFORBIDDEN();
 
-        Account accountWithComments = accountRepository.findAccountWithCommentsById(id);
+        Optional<Account> accountWithCommentsById = accountRepository.findAccountWithCommentsById(id);
+        if (this.checkId(accountWithCommentsById)) return this.returnNotFound();
+
+        Account account = accountWithCommentsById.get();
+        if (this.checkEmail(account.getEmail(), accountVO.getEmail())) this.returnBadRequest();
 
         HttpHeaders httpHeaders = new HttpHeaders();
         httpHeaders.setLocation(linkTo(AccountController.class).slash(id + "/comments")
                 .withRel("get Comments").toUri());
-
-        if (checked == null) {
-            return new ResponseEntity(httpHeaders, HttpStatus.NO_CONTENT);
-        }
+        if (checked == null) return this.returnNOCONTENT(httpHeaders);
 
         try {
-            accountService.findCommentsAndDelete(accountWithComments, checked);
+            accountService.findCommentsAndDelete(account, checked);
         } catch (NotFoundException e) {
             errors.rejectValue("number", "wrong.number", "not found comments by numbers");
             ErrorsResource errorsResource = new ErrorsResource(errors);
             return new ResponseEntity(errorsResource, HttpStatus.BAD_REQUEST);
         }
 
-        return new ResponseEntity(httpHeaders, HttpStatus.NO_CONTENT);
+        return this.returnNOCONTENT(httpHeaders);
     }
 
     //알림들 리턴
     @GetMapping("/{id}/notification")
-    public ResponseEntity findAccountsNotifications(@CurrentAccount Account account, @PathVariable("id") Long id,
+    public ResponseEntity findAccountsNotifications(@CurrentAccount AccountVO accountVO, @PathVariable("id") Long id,
                                                     @PageableDefault(sort = "createTime", direction = Sort.Direction.DESC) Pageable pageable,
                                                     PagedResourcesAssembler<NotificationDTO> assembler) {
-        if (account == null) {
-            return ResponseEntity.notFound().build();
-        }
-        if (!account.getId().equals(id)) {
-            return ResponseEntity.badRequest().build();
-        }
+        if (this.checkAccountVO(accountVO)) return this.returnFORBIDDEN();
+        Optional<Account> byId = this.accountRepository.findById(id);
+        if (this.checkId(byId)) return this.returnNotFound();
+        Account account = byId.get();
 
         Page<NotificationDTO> pageableNotification = accountService.createPageableNotification(id, pageable, account);
         PagedModel<EntityModel<NotificationDTO>> getNotification = assembler.toModel(pageableNotification, this.getAccountProfile(id));
@@ -322,26 +337,21 @@ public class AccountController {
 
     //다른 article과 commnets와 동일하게 동작
     @DeleteMapping("/{id}/notification")
-    public ResponseEntity deleteAccountsNotifications(@CurrentAccount Account account, @PathVariable("id") Long id, @RequestBody String checked, Errors errors) {
-        if (account == null) {
-            return ResponseEntity.notFound().build();
-        }
-        if (!account.getId().equals(id)) {
-            return ResponseEntity.badRequest().build();
-        }
+    public ResponseEntity deleteAccountsNotifications(@CurrentAccount AccountVO accountVO, @PathVariable("id") Long id, @RequestBody String checked, Errors errors) {
+        if (this.checkAccountVO(accountVO)) return this.returnFORBIDDEN();
 
-        Account accountWithNotification = accountRepository.findAccountWithNotificationById(id);
+        Optional<Account> accountWithNotificationById = accountRepository.findAccountWithNotificationById(id);
+        if (this.checkId(accountWithNotificationById)) return this.returnNotFound();
+
+        Account account = accountWithNotificationById.get();
 
         HttpHeaders httpHeaders = new HttpHeaders();
         httpHeaders.setLocation(linkTo(AccountController.class).slash(id + "/notification")
                                 .withRel("get Notification").toUri());
-
-        if (checked == null) {
-            return new ResponseEntity(httpHeaders, HttpStatus.NO_CONTENT);
-        }
+        if (checked == null) return this.returnNOCONTENT(httpHeaders);
 
         try {
-            accountService.findNotificationAndDelete(accountWithNotification, checked);
+            accountService.findNotificationAndDelete(account, checked);
         } catch (NotFoundException e) {
             errors.rejectValue("number", "wrong.number", "not found comments by numbers");
             ErrorsResource errorsResource = new ErrorsResource(errors);

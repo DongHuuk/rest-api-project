@@ -37,6 +37,7 @@ public class WebMvcConfig implements WebMvcConfigurer {
 
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
-        registry.addInterceptor(this.interceptor).addPathPatterns("/accounts/{id}");
+        registry.addInterceptor(this.interceptor).addPathPatterns("/accounts/**");
+        registry.addInterceptor(this.interceptor).addPathPatterns("/community/**");
     }
 }

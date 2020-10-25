@@ -24,9 +24,9 @@ public class CustomLoginSuccessHandler extends SavedRequestAwareAuthenticationSu
 
     @Override
     public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response, Authentication authentication) throws ServletException, IOException {
-        String username = (String) authentication.getPrincipal();
-        String token = TokenUtils.generateJwtToken(this.accountVORepository.findByEmail(username)
-                .orElseThrow(() -> new UsernameNotFoundException(username)));
+        AccountVO accountVO = (AccountVO) authentication.getPrincipal();
+        String token = TokenUtils.generateJwtToken(this.accountVORepository.findByEmail(accountVO.getEmail())
+                .orElseThrow(() -> new UsernameNotFoundException(accountVO.getEmail())));
         response.addHeader(AuthConstants.AUTH_HEADER, AuthConstants.TOKEN_TYPE + " " + token);
     }
 }
