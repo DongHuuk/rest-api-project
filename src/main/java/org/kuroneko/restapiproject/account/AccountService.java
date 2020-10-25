@@ -143,7 +143,7 @@ public class AccountService {
                 accountWithArticles.getArticle().remove(article);
             }
         }
-        this.articleRepository.deleteAllByIdInQuery(byNumber.stream().map(Article::getNumber).collect(Collectors.toList()));
+        this.articleRepository.deleteAllByIdInQuery(byNumber.stream().map(Article::getId).collect(Collectors.toList()));
     }
 
     public void findCommentsAndDelete(Account accountWithComments, String checked) throws NotFoundException {

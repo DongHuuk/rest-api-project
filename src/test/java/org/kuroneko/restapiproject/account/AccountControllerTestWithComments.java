@@ -5,16 +5,19 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.kuroneko.restapiproject.RestDocsConfiguration;
-import org.kuroneko.restapiproject.article.domain.ArticleForm;
-import org.kuroneko.restapiproject.article.ArticleRepository;
-import org.kuroneko.restapiproject.comments.CommentsForm;
-import org.kuroneko.restapiproject.comments.CommentsRepository;
-import org.kuroneko.restapiproject.config.WithAccount;
 import org.kuroneko.restapiproject.account.domain.Account;
 import org.kuroneko.restapiproject.account.domain.AccountForm;
+import org.kuroneko.restapiproject.article.ArticleRepository;
 import org.kuroneko.restapiproject.article.domain.Article;
+import org.kuroneko.restapiproject.article.domain.ArticleForm;
+import org.kuroneko.restapiproject.comments.CommentsForm;
+import org.kuroneko.restapiproject.comments.CommentsRepository;
 import org.kuroneko.restapiproject.comments.domain.Comments;
+import org.kuroneko.restapiproject.config.WithAccount;
+import org.kuroneko.restapiproject.exception.IdNotFoundException;
 import org.kuroneko.restapiproject.notification.NotificationRepository;
+import org.kuroneko.restapiproject.token.AccountVORepository;
+import org.kuroneko.restapiproject.token.AuthConstants;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.restdocs.AutoConfigureRestDocs;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -26,19 +29,21 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Arrays;
 import java.util.List;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.springframework.restdocs.headers.HeaderDocumentation.*;
-import static org.springframework.restdocs.headers.HeaderDocumentation.headerWithName;
 import static org.springframework.restdocs.hypermedia.HypermediaDocumentation.linkWithRel;
 import static org.springframework.restdocs.hypermedia.HypermediaDocumentation.links;
 import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.document;
 import static org.springframework.restdocs.payload.PayloadDocumentation.*;
-import static org.springframework.restdocs.payload.PayloadDocumentation.fieldWithPath;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @ExtendWith(SpringExtension.class)
@@ -54,6 +59,7 @@ public class AccountControllerTestWithComments extends AccountMethods{
     @Autowired private ArticleRepository articleRepository;
     @Autowired private CommentsRepository commentsRepository;
     @Autowired private NotificationRepository notificationRepository;
+    @Autowired private AccountVORepository accountVORepository;
 
     @AfterEach
     private void deleteAccountRepository_After(){
@@ -61,14 +67,15 @@ public class AccountControllerTestWithComments extends AccountMethods{
         this.commentsRepository.deleteAll();
         this.articleRepository.deleteAll();
         this.accountRepository.deleteAll();
+        this.accountVORepository.deleteAll();
     }
 
     @Test
-    @DisplayName("Account의 Comments를 조회 성공")
-    @WithAccount("test@naver.com")
+    @DisplayName("Account의 Comments를 조회 성공 - 200")
+    @WithAccount("test@testT.com")
     @Transactional
     public void findAccountsComments() throws Exception{
-        Account account = this.accountRepository.findByEmail("test@naver.com").orElseThrow();
+        Account account = this.accountRepository.findByEmail("test@testT.com").orElseThrow();
 
         ArticleForm articleForm_1 = createArticleForm(1);
         Article article_1 = saveArticle(account, articleForm_1);
@@ -90,7 +97,10 @@ public class AccountControllerTestWithComments extends AccountMethods{
             saveComments(commentsForm, article_3, account, i);
         }
 
-        this.mockMvc.perform(get("/accounts/{id}/comments", account.getId()))
+        String token = createToken(account);
+
+        this.mockMvc.perform(get("/accounts/{id}/comments", account.getId())
+                .header(AuthConstants.AUTH_HEADER, token))
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andDo(document("get-Account-Comments",
@@ -128,48 +138,62 @@ public class AccountControllerTestWithComments extends AccountMethods{
     }
 
     @Test
-    @DisplayName("Account의 comments를 조회 실패(존재하지 않는 account 조회)")
-    @Transactional
-    @WithAccount("test1@test.com")
-    public void findAccountsComments_fail_1() throws Exception {
-        this.mockMvc.perform(get("/accounts/12345/comments"))
-                .andDo(print())
-                .andExpect(status().isBadRequest());
-    }
-
-    @Test
-    @DisplayName("Account의 comments를 조회 실패(nonPrincipal)")
+    @DisplayName("Account의 comments를 조회 실패 (Principal) - 403")
     @Transactional
     public void findAccountsComments_fail_principal() throws Exception {
         AccountForm accountForm = createAccountForm();
         Account account = saveAccount(accountForm);
 
-        this.mockMvc.perform(get("/accounts/{id}/comments", account.getId()))
+        String token = createToken(account);
+
+        this.mockMvc.perform(get("/accounts/{id}/comments", account.getId())
+                .header(AuthConstants.AUTH_HEADER, token))
+                .andDo(print())
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @DisplayName("Account의 comments를 조회 실패 (Not Found Account Id) - 404")
+    @Transactional
+    @WithAccount("test@testT.com")
+    public void findAccountsComments_fail_AccountId() throws Exception {
+        Account account = this.accountRepository.findByEmail("test@testT.com").orElseThrow();
+        String token = createToken(account);
+
+        this.mockMvc.perform(get("/accounts/12345/comments")
+                .header(AuthConstants.AUTH_HEADER, token))
                 .andDo(print())
                 .andExpect(status().isNotFound());
     }
 
     @Test
-    @DisplayName("Account의 comments를 조회 실패(principal과 조회 하려는 Account의 Id가 다를 경우)")
+    @DisplayName("Account의 comments를 조회 실패(principal과 조회 하려는 Account의 Id가 다를 경우) - 400")
     @Transactional
-    @WithAccount("test1@test.com")
+    @WithAccount("test@testT.com")
     public void findAccountsComments_fail_unMatch() throws Exception {
-        AccountForm accountForm = createAccountForm();
-        Account account = saveAccount(accountForm);
-        ArticleForm articleForm = createArticleForm(1);
-        saveArticle(account, articleForm);
+        Account account = this.accountRepository.findByEmail("test@testT.com").orElseThrow();
 
-        this.mockMvc.perform(get("/accounts/{id}/comments", account.getId()))
+        AccountForm accountForm = createAccountForm();
+        accountForm.setEmail("test2@testT.com");
+        accountForm.setUsername("test Username");
+        Account saveAccount = saveAccount(accountForm);
+        ArticleForm articleForm = createArticleForm(1);
+        saveArticle(saveAccount, articleForm);
+
+        String token = createToken(account);
+
+        this.mockMvc.perform(get("/accounts/{id}/comments", saveAccount.getId())
+                .header(AuthConstants.AUTH_HEADER, token))
                 .andDo(print())
                 .andExpect(status().isBadRequest());
     }
 
     @Test
     @DisplayName("Account의 comments를 삭제 성공")
-    @WithAccount("test@naver.com")
+    @WithAccount("test@testT.com")
     @Transactional
     public void deleteAccountComments_success() throws Exception {
-        Account account = this.accountRepository.findByEmail("test@naver.com").orElseThrow();
+        Account account = this.accountRepository.findByEmail("test@testT.com").orElseThrow();
         ArticleForm articleForm = createArticleForm(1);
         Article article = saveArticle(account, articleForm);
 
@@ -178,80 +202,38 @@ public class AccountControllerTestWithComments extends AccountMethods{
             saveComments(commentsForm, article, account, i);
         }
 
+        String token = createToken(account);
         List<Comments> all = commentsRepository.findAll();
         String str = all.get(0).getNumber() + ", " + all.get(2).getNumber()+ ", " + all.get(4).getNumber()+ ", " + all.get(6).getNumber();
 
         this.mockMvc.perform(delete("/accounts/{id}/comments", account.getId())
+                .header(AuthConstants.AUTH_HEADER, token)
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(str)
-                .with(csrf()))
+                .content(str))
                 .andDo(print())
                 .andExpect(status().isNoContent())
                 .andDo(document("delete-Account-Comments",
                         requestHeaders(
-                                headerWithName(HttpHeaders.CONTENT_TYPE).description("AJAX로 Json 타입의 숫자 + ','의 값을 보낸다. ex) 1, 3, 5")
+                                headerWithName(HttpHeaders.CONTENT_TYPE).description("AJAX로 Json 타입의 숫자 + ','의 값을 보낸다. ex) 1, 3, 5"),
+                                headerWithName(AuthConstants.AUTH_HEADER).description("JWT")
                         ),
                         responseHeaders(
                                 headerWithName(HttpHeaders.LOCATION).description("Redirect URL")
                         )
                 ));
+
+        String[] split = str.split(", ");
+        Arrays.stream(split).forEach(s ->{
+            assertThrows(
+                    IdNotFoundException.class,
+                    () -> this.commentsRepository.findByNumber(Long.parseLong(s))
+                            .orElseThrow(() -> new IdNotFoundException("Number " + s + " not found"))
+            );
+        });
     }
 
     @Test
-    @DisplayName("Account의 comments를 삭제 실패(Principal과 Login Account 다름)")
-    @WithAccount("test@naver.com")
-    @Transactional
-    public void deleteAccountComments_fail_accountMiss() throws Exception {
-        AccountForm accountForm = createAccountForm();
-        Account newAccount = saveAccount(accountForm);
-
-        ArticleForm articleForm = createArticleForm(1);
-        Article article = saveArticle(newAccount, articleForm);
-
-        for(int i=0; i<15; i++){
-            CommentsForm commentsForm = createCommentsForm("Test Comment Number." + i);
-            saveComments(commentsForm, article, newAccount, i);
-        }
-
-        List<Comments> all = commentsRepository.findAll();
-        String str = all.get(0).getNumber() + ", " + all.get(2).getNumber() + ", " + all.get(all.size() - 1).getNumber();
-
-        this.mockMvc.perform(delete("/accounts/{id}/comments", newAccount.getId())
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(str)
-                .with(csrf()))
-                .andDo(print())
-                .andExpect(status().isBadRequest());
-    }
-
-    @Test
-    @DisplayName("Account의 comments를 삭제 실패(이상한 URL 요청)")
-    @WithAccount("test@naver.com")
-    @Transactional
-    public void deleteAccountComments_fail_unMatch() throws Exception {
-        Account account = accountRepository.findByEmail("test@naver.com").orElseThrow();
-
-        ArticleForm articleForm = createArticleForm(1);
-        Article article = saveArticle(account, articleForm);
-
-        for(int i=0; i<5; i++){
-            CommentsForm commentsForm = createCommentsForm("Test Comment Number." + i);
-            saveComments(commentsForm, article, account, i);
-        }
-
-        List<Comments> all = commentsRepository.findAll();
-        String str = all.get(0).getNumber() + ", " + all.get(2).getNumber() + ", " + all.get(all.size() - 1).getNumber();
-
-        this.mockMvc.perform(delete("/accounts/{id}/comments", 1982739548)
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(str)
-                .with(csrf()))
-                .andDo(print())
-                .andExpect(status().isBadRequest());
-    }
-
-    @Test
-    @DisplayName("Account의 comments를 삭제 실패(non principal)")
+    @DisplayName("Account의 comments를 삭제 실패(Principal) - 403")
     @Transactional
     public void deleteAccountComments_fail_principal() throws Exception {
         AccountForm accountForm = createAccountForm();
@@ -265,15 +247,132 @@ public class AccountControllerTestWithComments extends AccountMethods{
             saveComments(commentsForm, article, account, i);
         }
 
+        String token = createToken(account);
         List<Comments> all = commentsRepository.findAll();
         String str = all.get(0).getNumber() + ", " + all.get(2).getNumber() + ", " + all.get(all.size() - 1).getNumber();
 
         this.mockMvc.perform(delete("/accounts/{id}/comments", account.getId())
+                .header(AuthConstants.AUTH_HEADER, token)
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(str)
-                .with(csrf()))
+                .content(str))
+                .andDo(print())
+                .andExpect(status().isForbidden());
+
+        String[] split = str.split(", ");
+        Arrays.stream(split).forEach(s ->{
+            assertDoesNotThrow(
+                    () -> this.commentsRepository.findByNumber(Long.parseLong(s))
+                            .orElseThrow(() -> new IdNotFoundException("Number " + s + " not found"))
+            );
+        });
+    }
+
+    @Test
+    @DisplayName("Account의 comments를 삭제 실패 (not found Account Id) - 404")
+    @WithAccount("test@testT.com")
+    @Transactional
+    public void deleteAccountComments_fail_AccountId() throws Exception {
+        Account account = accountRepository.findByEmail("test@testT.com").orElseThrow();
+
+        ArticleForm articleForm = createArticleForm(1);
+        Article article = saveArticle(account, articleForm);
+
+        for(int i=0; i<5; i++){
+            CommentsForm commentsForm = createCommentsForm("Test Comment Number." + i);
+            saveComments(commentsForm, article, account, i);
+        }
+
+        String token = createToken(account);
+        List<Comments> all = commentsRepository.findAll();
+        String str = all.get(0).getNumber() + ", " + all.get(2).getNumber() + ", " + all.get(all.size() - 1).getNumber();
+
+        this.mockMvc.perform(delete("/accounts/{id}/comments", 1982739548)
+                .header(AuthConstants.AUTH_HEADER, token)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(str))
                 .andDo(print())
                 .andExpect(status().isNotFound());
+
+        String[] split = str.split(", ");
+        Arrays.stream(split).forEach(s ->{
+            assertDoesNotThrow(
+                    () -> this.commentsRepository.findByNumber(Long.parseLong(s))
+                            .orElseThrow(() -> new IdNotFoundException("Number " + s + " not found"))
+            );
+        });
+    }
+
+    @Test
+    @DisplayName("Account의 comments를 삭제 실패(unMatch Account and Principal) - 400")
+    @WithAccount("test@testT.com")
+    @Transactional
+    public void deleteAccountComments_fail_unMatchAccountAndPrincipal() throws Exception {
+        Account account = this.accountRepository.findByEmail("test@testT.com").orElseThrow();
+        AccountForm accountForm = createAccountForm();
+        accountForm.setEmail("test2@testT.com");
+        accountForm.setUsername("test Username");
+        Account newAccount = saveAccount(accountForm);
+
+        ArticleForm articleForm = createArticleForm(1);
+        Article article = saveArticle(newAccount, articleForm);
+
+        for(int i=0; i<15; i++){
+            CommentsForm commentsForm = createCommentsForm("Test Comment Number." + i);
+            saveComments(commentsForm, article, newAccount, i);
+        }
+        String token = createToken(account);
+        List<Comments> all = commentsRepository.findByAccountId(newAccount.getId());
+        String str = all.get(0).getNumber() + ", " + all.get(2).getNumber() + ", " + all.get(all.size() - 1).getNumber();
+
+        this.mockMvc.perform(delete("/accounts/{id}/comments", newAccount.getId())
+                .header(AuthConstants.AUTH_HEADER, token)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(str))
+                .andDo(print())
+                .andExpect(status().isBadRequest());
+
+        String[] split = str.split(", ");
+        Arrays.stream(split).forEach(s ->{
+            assertDoesNotThrow(
+                    () -> this.commentsRepository.findByNumber(Long.parseLong(s))
+                            .orElseThrow(() -> new IdNotFoundException("Number " + s + " not found"))
+            );
+        });
+    }
+
+    @Test
+    @DisplayName("Account의 comments를 삭제 실패(errorResource check) - 400")
+    @WithAccount("test@testT.com")
+    @Transactional
+    public void deleteAccountComments_fail_errorResource() throws Exception {
+        Account account = this.accountRepository.findByEmail("test@testT.com").orElseThrow();
+
+        ArticleForm articleForm = createArticleForm(1);
+        Article article = saveArticle(account, articleForm);
+
+        for(int i=0; i<15; i++){
+            CommentsForm commentsForm = createCommentsForm("Test Comment Number." + i);
+            saveComments(commentsForm, article, account, i);
+        }
+        String token = createToken(account);
+        String str = "67, 123, 6237";
+
+        this.mockMvc.perform(delete("/accounts/{id}/comments", account.getId())
+                .header(AuthConstants.AUTH_HEADER, token)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(str))
+                .andDo(print())
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$..errors").exists());
+
+        String[] split = str.split(", ");
+        Arrays.stream(split).forEach(s ->{
+            assertThrows(
+                    IdNotFoundException.class,
+                    () -> this.commentsRepository.findByNumber(Long.parseLong(s))
+                            .orElseThrow(() -> new IdNotFoundException("Number " + s + " not found"))
+            );
+        });
     }
 
 }

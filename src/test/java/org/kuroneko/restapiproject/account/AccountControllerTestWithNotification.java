@@ -14,6 +14,8 @@ import org.kuroneko.restapiproject.comments.CommentsRepository;
 import org.kuroneko.restapiproject.config.WithAccount;
 import org.kuroneko.restapiproject.notification.NotificationRepository;
 import org.kuroneko.restapiproject.notification.domain.Notification;
+import org.kuroneko.restapiproject.token.AccountVORepository;
+import org.kuroneko.restapiproject.token.AuthConstants;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.restdocs.AutoConfigureRestDocs;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -53,6 +55,7 @@ public class AccountControllerTestWithNotification extends AccountMethods{
     @Autowired private ArticleRepository articleRepository;
     @Autowired private CommentsRepository commentsRepository;
     @Autowired private NotificationRepository notificationRepository;
+    @Autowired private AccountVORepository accountVORepository;
 
     @AfterEach
     private void deleteAccountRepository_After(){
@@ -60,14 +63,15 @@ public class AccountControllerTestWithNotification extends AccountMethods{
         this.commentsRepository.deleteAll();
         this.articleRepository.deleteAll();
         this.accountRepository.deleteAll();
+        this.accountVORepository.deleteAll();
     }
 
     @Test
-    @DisplayName("Account의 notfication을 조회 성공")
-    @WithAccount("test@naver.com")
+    @DisplayName("Account의 notfication을 조회 성공 - 200")
+    @WithAccount("test@testT.com")
     @Transactional
     public void getAccountNotification_success() throws Exception {
-        Account account = this.accountRepository.findByEmail("test@naver.com").orElseThrow();
+        Account account = this.accountRepository.findByEmail("test@testT.com").orElseThrow();
         ArticleForm articleForm = createArticleForm(1);
         Article article = saveArticle(account, articleForm);
 
@@ -75,7 +79,10 @@ public class AccountControllerTestWithNotification extends AccountMethods{
             this.saveNotification(article, account);
         }
 
-        this.mockMvc.perform(get("/accounts/{id}/notification", account.getId()))
+        String token = createToken(account);
+
+        this.mockMvc.perform(get("/accounts/{id}/notification", account.getId())
+                .header(AuthConstants.AUTH_HEADER, token))
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andDo(document("get-Account-Notification",
@@ -85,6 +92,9 @@ public class AccountControllerTestWithNotification extends AccountMethods{
                             linkWithRel("get Comments").description("Account's get Comments"),
                             linkWithRel("get Notification").description("Account's get Notification"),
                             linkWithRel("DOCS").description("REST API DOCS")
+                        ),
+                        requestHeaders(
+                                headerWithName(AuthConstants.AUTH_HEADER).description("JWT")
                         ),
                         responseHeaders(
                                 headerWithName(HttpHeaders.CONTENT_TYPE).description("이 API에서는 JSON-HAL 지원한다.")
@@ -113,46 +123,59 @@ public class AccountControllerTestWithNotification extends AccountMethods{
     }
 
     @Test
-    @DisplayName("Account의 notification를 조회 실패(존재하지 않는 account 조회)")
+    @DisplayName("Account의 notification 조회 실패 (Principal)- 403")
     @Transactional
-    @WithAccount("test1@test.com")
-    public void findAccountsNotification_fail_1() throws Exception {
-        this.mockMvc.perform(get("/accounts/12345/notification"))
-                .andDo(print())
-                .andExpect(status().isBadRequest());
-    }
-
-    @Test
-    @DisplayName("Account의 notification 조회 실패(nonPrincipal)")
-    @Transactional
-    public void findAccountsNotification_fail_principal() throws Exception {
+    public void findAccountsNotification_fail_Principal() throws Exception {
         AccountForm accountForm = createAccountForm();
         Account account = saveAccount(accountForm);
 
-        this.mockMvc.perform(get("/accounts/{id}/notification", account.getId()))
+        String token = createToken(account);
+
+        this.mockMvc.perform(get("/accounts/{id}/notification", account.getId())
+                .header(AuthConstants.AUTH_HEADER, token))
+                .andDo(print())
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @DisplayName("Account의 notification를 조회 실패(not Found Account Id) - 404")
+    @Transactional
+    @WithAccount("test@testT.com")
+    public void findAccountsNotification_fail_AccountId() throws Exception {
+        Account account = this.accountRepository.findByEmail("test@testT.com").orElseThrow();
+        String token = createToken(account);
+
+        this.mockMvc.perform(get("/accounts/{id}/notification", 132132189)
+                .header(AuthConstants.AUTH_HEADER, token))
                 .andDo(print())
                 .andExpect(status().isNotFound());
     }
 
     @Test
-    @DisplayName("Account의 notification 조회 실패(principal과 조회 하려는 Account의 Id가 다를 경우)")
+    @DisplayName("Account의 notification 조회 실패 (unMatch Account and Principal) - 400")
     @Transactional
-    @WithAccount("test1@test.com")
+    @WithAccount("test@testT.com")
     public void findAccountsNotification_fail_unMatch() throws Exception {
+        Account account = this.accountRepository.findByEmail("test@testT.com").orElseThrow();
+
         AccountForm accountForm = createAccountForm();
-        Account account = saveAccount(accountForm);
+        Account saveAccount = saveAccount(accountForm);
         ArticleForm articleForm = createArticleForm(1);
-        Article article = saveArticle(account, articleForm);
+        Article article = saveArticle(saveAccount, articleForm);
 
         for (int i = 0; i < 10; i++) {
-            this.saveNotification(article, account);
+            this.saveNotification(article, saveAccount);
         }
 
-        this.mockMvc.perform(get("/accounts/{id}/notification", account.getId()))
+        String token = createToken(account);
+
+        this.mockMvc.perform(get("/accounts/{id}/notification", saveAccount.getId())
+                .header(AuthConstants.AUTH_HEADER, token))
                 .andDo(print())
                 .andExpect(status().isBadRequest());
     }
 
+    //TODO 여기부터
     @Test
     @DisplayName("Account의 notfication을 삭제 성공")
     @WithAccount("test@naver.com")

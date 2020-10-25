@@ -18,6 +18,8 @@ public interface ArticleRepository extends JpaRepository<Article, Long>, Queryds
 
     Optional<Article> findByNumber(Long valueOf);
 
+    List<Article> findByAccountId(Long id);
+
     Page<Article> findByAccountId(Long id, Pageable pageable);
 
     @Modifying

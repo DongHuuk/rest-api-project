@@ -2,13 +2,13 @@ package org.kuroneko.restapiproject.account;
 
 import javassist.NotFoundException;
 import lombok.extern.slf4j.Slf4j;
+import org.kuroneko.restapiproject.account.domain.Account;
+import org.kuroneko.restapiproject.account.domain.AccountForm;
+import org.kuroneko.restapiproject.account.domain.AccountPasswordForm;
 import org.kuroneko.restapiproject.account.validation.AccountPasswordValidation;
 import org.kuroneko.restapiproject.account.validation.AccountValidation;
 import org.kuroneko.restapiproject.article.domain.ArticleDTO;
 import org.kuroneko.restapiproject.comments.CommentsDTO;
-import org.kuroneko.restapiproject.account.domain.Account;
-import org.kuroneko.restapiproject.account.domain.AccountForm;
-import org.kuroneko.restapiproject.account.domain.AccountPasswordForm;
 import org.kuroneko.restapiproject.errors.ErrorsResource;
 import org.kuroneko.restapiproject.main.MainController;
 import org.kuroneko.restapiproject.notification.NotificationDTO;
@@ -32,7 +32,6 @@ import org.springframework.validation.Errors;
 import org.springframework.web.bind.WebDataBinder;
 import org.springframework.web.bind.annotation.*;
 
-import javax.swing.text.html.Option;
 import javax.validation.Valid;
 import java.util.Optional;
 
@@ -135,6 +134,10 @@ public class AccountController {
         return new ResponseEntity(HttpStatus.BAD_REQUEST);
     }
 
+    private ResponseEntity returnNOCONTENT(HttpHeaders httpHeaders) {
+        return new ResponseEntity(httpHeaders, HttpStatus.NO_CONTENT);
+    }
+
     @PostMapping
     public ResponseEntity createAccount(@RequestBody @Valid AccountForm accountForm, Errors errors){
         if (this.checkErrors(errors)) return badRequest(errors);
@@ -219,7 +222,7 @@ public class AccountController {
         if(this.checkId(byId)) return this.returnNotFound();
 
         Account account = byId.get();
-        if (this.checkEmail(account.getEmail(), accountVO.getEmail())) return this.returnBadRequest();
+        if (!this.checkEmail(account.getEmail(), accountVO.getEmail())) return this.returnBadRequest();
 
         Page<ArticleDTO> articleDTO = accountService.createPageableArticle(id, pageable, account);
         PagedModel<EntityModel<ArticleDTO>> getArticles = assembler.toModel(articleDTO, this.getAccountProfile(id));
@@ -231,10 +234,6 @@ public class AccountController {
         return new ResponseEntity(getArticles, HttpStatus.OK);
     }
 
-    private ResponseEntity returnNOCONTENT(HttpHeaders httpHeaders) {
-        return new ResponseEntity(httpHeaders, HttpStatus.NO_CONTENT);
-    }
-
     //checked 방식을 어떻게 할것인가. Ajax로 checked된 값을 ","로 구분하여 JSON으로 전송
     @DeleteMapping("/{id}/articles")
     public ResponseEntity deleteAccountsArticles(@CurrentAccount AccountVO accountVO, @PathVariable("id") Long id,
@@ -243,20 +242,16 @@ public class AccountController {
         HttpHeaders httpHeaders = new HttpHeaders();
         httpHeaders.setLocation(linkTo(AccountController.class).slash(id + "/articles").withRel("get Articles").toUri());
 
-        if (checked == null) {
-            return this.returnNOCONTENT(httpHeaders);
-        }
-
         Optional<Account> accountWithArticleById = accountRepository.findAccountWithArticleById(id);
         if(this.checkId(accountWithArticleById)) return this.returnNotFound();
 
         Account account = accountWithArticleById.get();
-        if (this.checkEmail(account.getEmail(), accountVO.getEmail())) return this.returnBadRequest();
+        if (!this.checkEmail(account.getEmail(), accountVO.getEmail())) return this.returnBadRequest();
 
         try {
             accountService.findArticlesAndDelete(account, checked);
         } catch (NotFoundException e) {
-            errors.rejectValue("number", "wrong.number", "not found articles by numbers");
+            errors.reject( "wrong.number", "not found articles by numbers");
             ErrorsResource errorsResource = new ErrorsResource(errors);
             return new ResponseEntity(errorsResource, HttpStatus.BAD_REQUEST);
         }
@@ -264,6 +259,7 @@ public class AccountController {
         return this.returnNOCONTENT(httpHeaders);
     }
 
+    //TODO 여기부터
     //댓글들 리턴
     @GetMapping("/{id}/comments")
     public ResponseEntity findAccountsComments(@CurrentAccount AccountVO accountVO, @PathVariable("id") Long id,
@@ -275,7 +271,7 @@ public class AccountController {
         if(this.checkId(byId)) return this.returnNotFound();
 
         Account account = byId.get();
-        if (this.checkEmail(account.getEmail(), accountVO.getEmail())) return this.returnBadRequest();
+        if (!this.checkEmail(account.getEmail(), accountVO.getEmail())) return this.returnBadRequest();
 
         Page<CommentsDTO> commentsDTO = accountService.createPageableComments(id, pageable, account);
         PagedModel<EntityModel<CommentsDTO>> getComments = assembler.toModel(commentsDTO, this.getAccountProfile(id));
@@ -297,17 +293,16 @@ public class AccountController {
         if (this.checkId(accountWithCommentsById)) return this.returnNotFound();
 
         Account account = accountWithCommentsById.get();
-        if (this.checkEmail(account.getEmail(), accountVO.getEmail())) this.returnBadRequest();
+        if (!this.checkEmail(account.getEmail(), accountVO.getEmail())) return this.returnBadRequest();
 
         HttpHeaders httpHeaders = new HttpHeaders();
         httpHeaders.setLocation(linkTo(AccountController.class).slash(id + "/comments")
                 .withRel("get Comments").toUri());
-        if (checked == null) return this.returnNOCONTENT(httpHeaders);
 
         try {
             accountService.findCommentsAndDelete(account, checked);
         } catch (NotFoundException e) {
-            errors.rejectValue("number", "wrong.number", "not found comments by numbers");
+            errors.reject( "wrong.number", "not found comments by numbers");
             ErrorsResource errorsResource = new ErrorsResource(errors);
             return new ResponseEntity(errorsResource, HttpStatus.BAD_REQUEST);
         }
@@ -321,9 +316,12 @@ public class AccountController {
                                                     @PageableDefault(sort = "createTime", direction = Sort.Direction.DESC) Pageable pageable,
                                                     PagedResourcesAssembler<NotificationDTO> assembler) {
         if (this.checkAccountVO(accountVO)) return this.returnFORBIDDEN();
+
         Optional<Account> byId = this.accountRepository.findById(id);
         if (this.checkId(byId)) return this.returnNotFound();
+
         Account account = byId.get();
+        if (!this.checkEmail(account.getEmail(), accountVO.getEmail())) return this.returnBadRequest();
 
         Page<NotificationDTO> pageableNotification = accountService.createPageableNotification(id, pageable, account);
         PagedModel<EntityModel<NotificationDTO>> getNotification = assembler.toModel(pageableNotification, this.getAccountProfile(id));
@@ -335,6 +333,7 @@ public class AccountController {
         return new ResponseEntity(getNotification, HttpStatus.OK);
     }
 
+    //TODO 여기부터
     //다른 article과 commnets와 동일하게 동작
     @DeleteMapping("/{id}/notification")
     public ResponseEntity deleteAccountsNotifications(@CurrentAccount AccountVO accountVO, @PathVariable("id") Long id, @RequestBody String checked, Errors errors) {

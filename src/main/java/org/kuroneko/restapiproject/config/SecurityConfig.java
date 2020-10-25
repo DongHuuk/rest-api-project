@@ -28,11 +28,12 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
 
     @Override
     protected void configure(HttpSecurity http) throws Exception {
+        http.csrf().disable();
+
         http.authorizeRequests()
                 .mvcMatchers("/", "/accounts/**", "/checkbox/test").permitAll();
 
-        http.csrf().disable().authorizeRequests()
-                .anyRequest().permitAll()
+        http.authorizeRequests().anyRequest().permitAll()
                 //토큰 이용시 모든 요청에 접근 허용
                 .and()
                 .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS)

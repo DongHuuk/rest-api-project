@@ -78,8 +78,7 @@ class AccountControllerTest extends AccountMethods{
         this.mockMvc.perform(post("/accounts")
                 .contentType(MediaType.APPLICATION_JSON)
                 .accept(MediaTypes.HAL_JSON)
-                .content(objectMapper.writeValueAsString(accountForm))
-                .with(csrf()))
+                .content(objectMapper.writeValueAsString(accountForm)))
                 .andDo(print())
                 .andExpect(status().isCreated())
                 .andDo(document("create-Account",
@@ -117,8 +116,7 @@ class AccountControllerTest extends AccountMethods{
                 .param("username", "흑우냥이")
                 .param("password", "12341234")
                 .param("checkingPassword","12341234")
-                .param("email", "test@testT.com")
-                .with(csrf()))
+                .param("email", "test@testT.com"))
                 .andDo(print())
                 .andExpect(status().isUnsupportedMediaType());
 
@@ -137,8 +135,7 @@ class AccountControllerTest extends AccountMethods{
         this.mockMvc.perform(post("/accounts")
                 .contentType(MediaType.APPLICATION_JSON)
                 .accept(MediaTypes.HAL_JSON)
-                .content(objectMapper.writeValueAsString(accountForm))
-                .with(csrf()))
+                .content(objectMapper.writeValueAsString(accountForm)))
                 .andDo(print())
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.errors").exists());
@@ -160,8 +157,7 @@ class AccountControllerTest extends AccountMethods{
         this.mockMvc.perform(post("/accounts")
                 .contentType(MediaType.APPLICATION_JSON)
                 .accept(MediaTypes.HAL_JSON)
-                .content(objectMapper.writeValueAsString(accountForm))
-                .with(csrf()))
+                .content(objectMapper.writeValueAsString(accountForm)))
                 .andDo(print())
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.errors").exists())
@@ -182,8 +178,7 @@ class AccountControllerTest extends AccountMethods{
         this.mockMvc.perform(post("/accounts")
                 .contentType(MediaType.APPLICATION_JSON)
                 .accept(MediaTypes.HAL_JSON)
-                .content(objectMapper.writeValueAsString(accountForm))
-                .with(csrf()))
+                .content(objectMapper.writeValueAsString(accountForm)))
                 .andDo(print())
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.errors").exists());
@@ -278,8 +273,7 @@ class AccountControllerTest extends AccountMethods{
                 .contentType(MediaType.APPLICATION_JSON)
                 .accept(MediaTypes.HAL_JSON)
                 .header(AuthConstants.AUTH_HEADER, token)
-                .content(objectMapper.writeValueAsString(accountForm))
-                .with(csrf()))
+                .content(objectMapper.writeValueAsString(accountForm)))
                 .andDo(print())
                 .andExpect(status().isCreated())
                 .andDo(document("update-Account",
@@ -324,8 +318,7 @@ class AccountControllerTest extends AccountMethods{
                 .contentType(MediaType.APPLICATION_JSON)
                 .accept(MediaTypes.HAL_JSON)
                 .header(AuthConstants.AUTH_HEADER, token)
-                .content(objectMapper.writeValueAsString(accountForm))
-                .with(csrf()))
+                .content(objectMapper.writeValueAsString(accountForm)))
                 .andDo(print())
                 .andExpect(jsonPath("$.errors").exists())
                 .andExpect(status().isBadRequest());
@@ -349,8 +342,7 @@ class AccountControllerTest extends AccountMethods{
                 .contentType(MediaType.APPLICATION_JSON)
                 .accept(MediaTypes.HAL_JSON)
                 .header(AuthConstants.AUTH_HEADER, token)
-                .content(objectMapper.writeValueAsString(accountForm))
-                .with(csrf()))
+                .content(objectMapper.writeValueAsString(accountForm)))
                 .andDo(print())
                 .andExpect(jsonPath("$.errors").exists())
                 .andExpect(status().isBadRequest());
@@ -372,8 +364,7 @@ class AccountControllerTest extends AccountMethods{
                 .contentType(MediaType.APPLICATION_JSON)
                 .accept(MediaTypes.HAL_JSON)
                 .header(AuthConstants.AUTH_HEADER, token)
-                .content(objectMapper.writeValueAsString(accountForm))
-                .with(csrf()))
+                .content(objectMapper.writeValueAsString(accountForm)))
                 .andDo(print())
                 .andExpect(status().isNotFound());
     }
@@ -389,8 +380,7 @@ class AccountControllerTest extends AccountMethods{
         this.mockMvc.perform(put("/accounts/231829")
                 .contentType(MediaType.APPLICATION_JSON)
                 .accept(MediaTypes.HAL_JSON)
-                .content(objectMapper.writeValueAsString(accountForm))
-                .with(csrf()))
+                .content(objectMapper.writeValueAsString(accountForm)))
                 .andDo(print())
                 .andExpect(status().is3xxRedirection());
     }
@@ -410,8 +400,7 @@ class AccountControllerTest extends AccountMethods{
         this.mockMvc.perform(delete("/accounts/" + account.getId())
                 .contentType(MediaType.APPLICATION_JSON)
                 .header(AuthConstants.AUTH_HEADER, token)
-                .content(objectMapper.writeValueAsString(accountPasswordForm))
-                .with(csrf()))
+                .content(objectMapper.writeValueAsString(accountPasswordForm)))
                 .andDo(print())
                 .andExpect(status().isNoContent())
                 .andDo(document("delete-Account",
@@ -448,8 +437,7 @@ class AccountControllerTest extends AccountMethods{
         this.mockMvc.perform(delete("/accounts/" + account.getId())
                 .contentType(MediaType.APPLICATION_JSON)
                 .header(AuthConstants.AUTH_HEADER, token)
-                .content(this.objectMapper.writeValueAsString((accountPasswordForm)))
-                .with(csrf()))
+                .content(this.objectMapper.writeValueAsString((accountPasswordForm))))
                 .andDo(print())
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.errors").exists());
@@ -475,8 +463,7 @@ class AccountControllerTest extends AccountMethods{
         this.mockMvc.perform(delete("/accounts/123155123")
                 .contentType(MediaType.APPLICATION_JSON)
                 .header(AuthConstants.AUTH_HEADER, token)
-                .content(this.objectMapper.writeValueAsString((accountPasswordForm)))
-                .with(csrf()))
+                .content(this.objectMapper.writeValueAsString((accountPasswordForm))))
                 .andDo(print())
                 .andExpect(status().isNotFound());
 
@@ -496,8 +483,7 @@ class AccountControllerTest extends AccountMethods{
 
         this.mockMvc.perform(post("/login")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(this.objectMapper.writeValueAsString(loginForm))
-                .with(csrf()))
+                .content(this.objectMapper.writeValueAsString(loginForm)))
                 .andDo(print())
                 .andExpect(status().isOk());
     }

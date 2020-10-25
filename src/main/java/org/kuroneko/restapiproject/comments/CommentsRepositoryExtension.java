@@ -4,6 +4,7 @@ import org.kuroneko.restapiproject.comments.domain.Comments;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Optional;
 
 @Transactional
 public interface CommentsRepositoryExtension {
