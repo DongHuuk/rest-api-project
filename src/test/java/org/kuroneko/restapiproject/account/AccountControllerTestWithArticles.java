@@ -225,32 +225,58 @@ public class AccountControllerTestWithArticles extends AccountMethods{
     }
 
     @Test
-    @DisplayName("Account의 articles를 삭제 실패 (unmatch Principal and Account) - 400")
+    @DisplayName("Account의 articles를 삭제 실패 (JWT error) - 3xx")
     @WithAccount("test@testT.com")
     @Transactional
-    public void deleteAccountArticles_fail_unMatch() throws Exception {
+    public void deleteAccountArticles_fail_JWT() throws Exception {
         Account account = this.accountRepository.findByEmail("test@testT.com").orElseThrow();
-        AccountForm accountForm = createAccountForm();
-        accountForm.setEmail("test2@testT.com");
-        accountForm.setUsername("test username by 2");
-        Account newAccount = saveAccount(accountForm);
-
-        String token = createToken(account);
 
         for(int i = 0; i<15; i++){
             ArticleForm articleForm = createArticleForm(1);
-            saveArticle(newAccount, articleForm, i);
+            saveArticle(account, articleForm, i);
         }
 
         List<Article> all = articleRepository.findAll();
         String str = all.get(0).getNumber() + ", " + all.get(2).getNumber();
 
-        this.mockMvc.perform(delete("/accounts/{id}/articles", newAccount.getId())
+        this.mockMvc.perform(delete("/accounts/{id}/articles", account.getId())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(str))
+                .andDo(print())
+                .andExpect(status().is3xxRedirection());
+
+        String[] split = str.split(", ");
+        Arrays.stream(split).forEach(s -> {
+            Long number = Long.parseLong(s);
+            assertDoesNotThrow(
+                    () -> this.articleRepository.findByNumber(number)
+                            .orElseThrow(() -> new IdNotFoundException("number " + number + " is Not Found"))
+            );
+        });
+    }
+
+    @Test
+    @DisplayName("Account의 articles를 삭제 실패 (Principal) - 403")
+    @Transactional
+    public void deleteAccountArticles_fail_Principal() throws Exception {
+        AccountForm accountForm = createAccountForm();
+        Account account = saveAccount(accountForm);
+
+        for(int i = 0; i<15; i++){
+            ArticleForm articleForm = createArticleForm(1);
+            saveArticle(account, articleForm, i);
+        }
+
+        String token = createToken(account);
+        List<Article> all = articleRepository.findAll();
+        String str = all.get(0).getNumber() + ", " + all.get(2).getNumber();
+
+        this.mockMvc.perform(delete("/accounts/{id}/articles", account.getId())
                 .header(AuthConstants.AUTH_HEADER, token)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(str))
                 .andDo(print())
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isForbidden());
 
         String[] split = str.split(", ");
         Arrays.stream(split).forEach(s -> {
@@ -296,26 +322,27 @@ public class AccountControllerTestWithArticles extends AccountMethods{
     }
 
     @Test
-    @DisplayName("Account의 articles를 삭제 실패 (Not Found Account Id) - 400")
+    @DisplayName("Account의 articles를 삭제 실패 (unmatch Principal and Account) - 400")
     @WithAccount("test@testT.com")
     @Transactional
-    public void deleteAccountArticles_fail_BadRequest() throws Exception {
-        Account account = accountRepository.findByEmail("test@testT.com").orElseThrow();
+    public void deleteAccountArticles_fail_unMatch() throws Exception {
+        Account account = this.accountRepository.findByEmail("test@testT.com").orElseThrow();
         AccountForm accountForm = createAccountForm();
-        accountForm.setUsername("test2 username");
         accountForm.setEmail("test2@testT.com");
-        Account account2 = saveAccount(accountForm);
+        accountForm.setUsername("test username by 2");
+        Account newAccount = saveAccount(accountForm);
+
+        String token = createToken(account);
 
         for(int i = 0; i<15; i++){
             ArticleForm articleForm = createArticleForm(1);
-            saveArticle(account2, articleForm, i);
+            saveArticle(newAccount, articleForm, i);
         }
 
-        List<Article> all = articleRepository.findByAccountId(account2.getId());
+        List<Article> all = articleRepository.findAll();
         String str = all.get(0).getNumber() + ", " + all.get(2).getNumber();
-        String token = createToken(account);
 
-        this.mockMvc.perform(delete("/accounts/{id}/articles", account2.getId())
+        this.mockMvc.perform(delete("/accounts/{id}/articles", newAccount.getId())
                 .header(AuthConstants.AUTH_HEADER, token)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(str))

@@ -138,6 +138,18 @@ public class AccountControllerTestWithComments extends AccountMethods{
     }
 
     @Test
+    @DisplayName("Account의 comments를 조회 실패 (JWT error) - 304")
+    @WithAccount("test@testT.com")
+    @Transactional
+    public void findAccountsComments_fail_JWT() throws Exception {
+        Account account = this.accountRepository.findByEmail("test@testT.com").orElseThrow();
+
+        this.mockMvc.perform(get("/accounts/{id}/comments", account.getId()))
+                .andDo(print())
+                .andExpect(status().is3xxRedirection());
+    }
+
+    @Test
     @DisplayName("Account의 comments를 조회 실패 (Principal) - 403")
     @Transactional
     public void findAccountsComments_fail_principal() throws Exception {
@@ -226,6 +238,39 @@ public class AccountControllerTestWithComments extends AccountMethods{
         Arrays.stream(split).forEach(s ->{
             assertThrows(
                     IdNotFoundException.class,
+                    () -> this.commentsRepository.findByNumber(Long.parseLong(s))
+                            .orElseThrow(() -> new IdNotFoundException("Number " + s + " not found"))
+            );
+        });
+    }
+
+    @Test
+    @DisplayName("Account의 comments를 삭제 실패(JWT error) - 3xx")
+    @WithAccount("test@testT.com")
+    @Transactional
+    public void deleteAccountComments_fail_JWT() throws Exception {
+        Account account = this.accountRepository.findByEmail("test@testT.com").orElseThrow();
+
+        ArticleForm articleForm = createArticleForm(1);
+        Article article = saveArticle(account, articleForm);
+
+        for(int i=0; i<5; i++){
+            CommentsForm commentsForm = createCommentsForm("Test Comment Number." + i);
+            saveComments(commentsForm, article, account, i);
+        }
+
+        List<Comments> all = commentsRepository.findAll();
+        String str = all.get(0).getNumber() + ", " + all.get(2).getNumber() + ", " + all.get(all.size() - 1).getNumber();
+
+        this.mockMvc.perform(delete("/accounts/{id}/comments", account.getId())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(str))
+                .andDo(print())
+                .andExpect(status().is3xxRedirection());
+
+        String[] split = str.split(", ");
+        Arrays.stream(split).forEach(s ->{
+            assertDoesNotThrow(
                     () -> this.commentsRepository.findByNumber(Long.parseLong(s))
                             .orElseThrow(() -> new IdNotFoundException("Number " + s + " not found"))
             );
@@ -355,7 +400,7 @@ public class AccountControllerTestWithComments extends AccountMethods{
             saveComments(commentsForm, article, account, i);
         }
         String token = createToken(account);
-        String str = "67, 123, 6237";
+        String str = "6, 122313, 6237";
 
         this.mockMvc.perform(delete("/accounts/{id}/comments", account.getId())
                 .header(AuthConstants.AUTH_HEADER, token)
@@ -364,15 +409,15 @@ public class AccountControllerTestWithComments extends AccountMethods{
                 .andDo(print())
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$..errors").exists());
-
-        String[] split = str.split(", ");
-        Arrays.stream(split).forEach(s ->{
-            assertThrows(
-                    IdNotFoundException.class,
-                    () -> this.commentsRepository.findByNumber(Long.parseLong(s))
-                            .orElseThrow(() -> new IdNotFoundException("Number " + s + " not found"))
-            );
-        });
+//        조건부 검증을 할 필요가 없다.
+//        String[] split = str.split(", ");
+//        Arrays.stream(split).forEach(s ->{
+//            assertThrows(
+//                    IdNotFoundException.class,
+//                    () -> this.commentsRepository.findByNumber(Long.parseLong(s))
+//                            .orElseThrow(() -> new IdNotFoundException("Number " + s + " not found"))
+//            );
+//        });
     }
 
 }

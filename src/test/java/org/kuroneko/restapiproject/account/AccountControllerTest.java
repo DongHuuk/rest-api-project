@@ -219,6 +219,18 @@ class AccountControllerTest extends AccountMethods{
     }
 
     @Test
+    @DisplayName("Account 조회 실패 (JWT error) - 3xx")
+    @WithAccount("test@testT.com")
+    public void sendAccount_token() throws Exception {
+        Account account = this.accountRepository.findByEmail("test@testT.com").orElseThrow();
+
+        this.mockMvc.perform(get("/accounts/{id}", account.getId())
+                .accept(MediaTypes.HAL_JSON))
+                .andDo(print())
+                .andExpect(status().is3xxRedirection());
+    }
+
+    @Test
     @DisplayName("Account 조회 실패 (principal) - 403")
     public void sendAccount_noneAuthenticated() throws Exception {
         AccountForm accountForm = createAccountForm();
@@ -244,18 +256,6 @@ class AccountControllerTest extends AccountMethods{
                 .header(AuthConstants.AUTH_HEADER, token))
                 .andDo(print())
                 .andExpect(status().isNotFound());
-    }
-
-    @Test
-    @DisplayName("Account 조회 실패 (JWT error) - 3xx")
-    @WithAccount("test@testT.com")
-    public void sendAccount_token() throws Exception {
-        Account account = this.accountRepository.findByEmail("test@testT.com").orElseThrow();
-
-        this.mockMvc.perform(get("/accounts/{id}", account.getId())
-                .accept(MediaTypes.HAL_JSON))
-                .andDo(print())
-                .andExpect(status().is3xxRedirection());
     }
 
     @Test
@@ -296,6 +296,42 @@ class AccountControllerTest extends AccountMethods{
         assertEquals(newAccount.getUsername(), accountForm.getUsername());
         assertFalse(this.passwordEncoder.matches("1234567890", newAccount.getPassword()));
         assertTrue(this.passwordEncoder.matches("0987654321", newAccount.getPassword()));
+    }
+
+    @Test
+    @WithAccount("test@testT.com")
+    @DisplayName("Account 갱신 실패 (JWT error) - 304")
+    public void updateAccount_JWT() throws Exception {
+        Account account = this.accountRepository.findByEmail("test@testT.com").orElseThrow();
+        AccountForm accountForm = createAccountForm();
+        accountForm.setUsername("테스트2");
+
+        this.mockMvc.perform(put("/accounts/231829")
+                .contentType(MediaType.APPLICATION_JSON)
+                .accept(MediaTypes.HAL_JSON)
+                .content(objectMapper.writeValueAsString(accountForm)))
+                .andDo(print())
+                .andExpect(status().is3xxRedirection());
+    }
+
+    @Test
+    @DisplayName("Account 갱신 실패 (Principal) - 403")
+    public void updateAccount_Principal() throws Exception {
+        AccountForm accountForm = createAccountForm();
+        Account account = saveAccount(accountForm);
+
+        accountForm.setEmail("test2@testT.com");
+        accountForm.setUsername("test2 username");
+
+        String token = createToken(account);
+
+        this.mockMvc.perform(put("/accounts/231829")
+                .header(AuthConstants.AUTH_HEADER, token)
+                .contentType(MediaType.APPLICATION_JSON)
+                .accept(MediaTypes.HAL_JSON)
+                .content(objectMapper.writeValueAsString(accountForm)))
+                .andDo(print())
+                .andExpect(status().isForbidden());
     }
 
     @Test
@@ -371,22 +407,6 @@ class AccountControllerTest extends AccountMethods{
 
     @Test
     @WithAccount("test@testT.com")
-    @DisplayName("Account 갱신 실패 (JWT error) - 304")
-    public void updateAccount_JWT() throws Exception {
-        Account account = this.accountRepository.findByEmail("test@testT.com").orElseThrow();
-        AccountForm accountForm = createAccountForm();
-        accountForm.setUsername("테스트2");
-
-        this.mockMvc.perform(put("/accounts/231829")
-                .contentType(MediaType.APPLICATION_JSON)
-                .accept(MediaTypes.HAL_JSON)
-                .content(objectMapper.writeValueAsString(accountForm)))
-                .andDo(print())
-                .andExpect(status().is3xxRedirection());
-    }
-
-    @Test
-    @WithAccount("test@testT.com")
     @DisplayName("Account 삭제 성공 - 204")
     public void deleteAccount() throws Exception{
         Account account = this.accountRepository.findByEmail("test@testT.com").orElseThrow();
@@ -425,6 +445,51 @@ class AccountControllerTest extends AccountMethods{
 
     @Test
     @WithAccount("test@testT.com")
+    @DisplayName("Account 삭제 실패 (JWT error) - 3xx")
+    public void deleteAccount_JWT() throws Exception {
+        Account account = this.accountRepository.findByEmail("test@testT.com").orElseThrow();
+        AccountPasswordForm accountPasswordForm = new AccountPasswordForm();
+        accountPasswordForm.setPassword("12341234");
+        accountPasswordForm.setCheckingPassword("12345678900");
+
+        this.mockMvc.perform(delete("/accounts/" + account.getId())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(this.objectMapper.writeValueAsString((accountPasswordForm))))
+                .andDo(print())
+                .andExpect(status().is3xxRedirection());
+
+        assertDoesNotThrow(
+                () -> this.accountRepository.findByEmail(account.getEmail())
+                        .orElseThrow(() -> new IdNotFoundException(account.getEmail()))
+        );
+    }
+
+    @Test
+    @DisplayName("Account 삭제 실패 (Principal) - 403")
+    public void deleteAccount_Principal() throws Exception {
+        AccountForm accountForm = createAccountForm();
+        Account account = saveAccount(accountForm);
+        AccountPasswordForm accountPasswordForm = new AccountPasswordForm();
+        accountPasswordForm.setPassword("12341234");
+        accountPasswordForm.setCheckingPassword("12345678900");
+
+        String token = createToken(account);
+
+        this.mockMvc.perform(delete("/accounts/" + account.getId())
+                .contentType(MediaType.APPLICATION_JSON)
+                .header(AuthConstants.AUTH_HEADER, token)
+                .content(this.objectMapper.writeValueAsString((accountPasswordForm))))
+                .andDo(print())
+                .andExpect(status().isForbidden());
+
+        assertDoesNotThrow(
+                () -> this.accountRepository.findByEmail(account.getEmail())
+                        .orElseThrow(() -> new IdNotFoundException(account.getEmail()))
+        );
+    }
+
+    @Test
+    @WithAccount("test@testT.com")
     @DisplayName("Account 삭제 실패 (validator accountPasswordForm) - 400")
     public void deleteAccount_error_validator_password() throws Exception {
         Account account = this.accountRepository.findByEmail("test@testT.com").orElseThrow();
@@ -446,7 +511,6 @@ class AccountControllerTest extends AccountMethods{
                 () -> this.accountRepository.findByEmail(account.getEmail())
                 .orElseThrow(() -> new IdNotFoundException(account.getEmail()))
         );
-
     }
 
     @Test

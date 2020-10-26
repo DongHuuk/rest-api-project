@@ -333,7 +333,6 @@ public class AccountController {
         return new ResponseEntity(getNotification, HttpStatus.OK);
     }
 
-    //TODO 여기부터
     //다른 article과 commnets와 동일하게 동작
     @DeleteMapping("/{id}/notification")
     public ResponseEntity deleteAccountsNotifications(@CurrentAccount AccountVO accountVO, @PathVariable("id") Long id, @RequestBody String checked, Errors errors) {
@@ -343,11 +342,11 @@ public class AccountController {
         if (this.checkId(accountWithNotificationById)) return this.returnNotFound();
 
         Account account = accountWithNotificationById.get();
+        if (!this.checkEmail(account.getEmail(), accountVO.getEmail())) return this.returnBadRequest();
 
         HttpHeaders httpHeaders = new HttpHeaders();
         httpHeaders.setLocation(linkTo(AccountController.class).slash(id + "/notification")
                                 .withRel("get Notification").toUri());
-        if (checked == null) return this.returnNOCONTENT(httpHeaders);
 
         try {
             accountService.findNotificationAndDelete(account, checked);

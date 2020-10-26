@@ -155,7 +155,7 @@ public class AccountService {
 
         List<Comments> byNumber = this.commentsRepository.findByNumber(collect);
 
-        if (byNumber.isEmpty()) {
+        if (byNumber.isEmpty() || byNumber.size() != split.length) {
             throw new NotFoundException("Not Found Articles by Numbers");
         }
 

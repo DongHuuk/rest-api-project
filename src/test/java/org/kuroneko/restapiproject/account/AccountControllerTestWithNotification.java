@@ -1,5 +1,6 @@
 package org.kuroneko.restapiproject.account;
 
+import lombok.With;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -12,6 +13,7 @@ import org.kuroneko.restapiproject.article.domain.ArticleForm;
 import org.kuroneko.restapiproject.article.ArticleRepository;
 import org.kuroneko.restapiproject.comments.CommentsRepository;
 import org.kuroneko.restapiproject.config.WithAccount;
+import org.kuroneko.restapiproject.exception.IdNotFoundException;
 import org.kuroneko.restapiproject.notification.NotificationRepository;
 import org.kuroneko.restapiproject.notification.domain.Notification;
 import org.kuroneko.restapiproject.token.AccountVORepository;
@@ -27,8 +29,11 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Arrays;
 import java.util.List;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.springframework.restdocs.headers.HeaderDocumentation.*;
 import static org.springframework.restdocs.headers.HeaderDocumentation.headerWithName;
 import static org.springframework.restdocs.hypermedia.HypermediaDocumentation.linkWithRel;
@@ -123,6 +128,18 @@ public class AccountControllerTestWithNotification extends AccountMethods{
     }
 
     @Test
+    @DisplayName("Account의 notification 조회 실패 (JWT error) - 3xx")
+    @WithAccount("test@testT.com")
+    @Transactional
+    public void findAccountsNotification_fail_JWT() throws Exception {
+        Account account = this.accountRepository.findByEmail("test@testT.com").orElseThrow();
+
+        this.mockMvc.perform(get("/accounts/{id}/notification", account.getId()))
+                .andDo(print())
+                .andExpect(status().is3xxRedirection());
+    }
+
+    @Test
     @DisplayName("Account의 notification 조회 실패 (Principal)- 403")
     @Transactional
     public void findAccountsNotification_fail_Principal() throws Exception {
@@ -157,8 +174,9 @@ public class AccountControllerTestWithNotification extends AccountMethods{
     @WithAccount("test@testT.com")
     public void findAccountsNotification_fail_unMatch() throws Exception {
         Account account = this.accountRepository.findByEmail("test@testT.com").orElseThrow();
-
         AccountForm accountForm = createAccountForm();
+        accountForm.setEmail("test2@testT.com");
+        accountForm.setUsername("test2 Username");
         Account saveAccount = saveAccount(accountForm);
         ArticleForm articleForm = createArticleForm(1);
         Article article = saveArticle(saveAccount, articleForm);
@@ -175,13 +193,12 @@ public class AccountControllerTestWithNotification extends AccountMethods{
                 .andExpect(status().isBadRequest());
     }
 
-    //TODO 여기부터
     @Test
-    @DisplayName("Account의 notfication을 삭제 성공")
-    @WithAccount("test@naver.com")
+    @DisplayName("Account의 notfication을 삭제 성공 - 204")
+    @WithAccount("test@testT.com")
     @Transactional
     public void deleteAccountNotification_success() throws Exception {
-        Account account = this.accountRepository.findByEmail("test@naver.com").orElseThrow();
+        Account account = this.accountRepository.findByEmail("test@testT.com").orElseThrow();
         ArticleForm articleForm = createArticleForm(1);
         Article article = saveArticle(account, articleForm);
 
@@ -190,58 +207,42 @@ public class AccountControllerTestWithNotification extends AccountMethods{
         }
 
         List<Notification> all = this.notificationRepository.findAll();
-
         String str = all.get(0).getNumber() + ", " + all.get(3).getNumber() + ", " + all.get(8).getNumber();
+        String token = createToken(account);
 
         this.mockMvc.perform(delete("/accounts/{id}/notification", account.getId())
+                .header(AuthConstants.AUTH_HEADER, token)
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(str)
-                .with(csrf()))
+                .content(str))
                 .andDo(print())
                 .andExpect(status().isNoContent())
                 .andDo(document("delete-Account-Notification",
                         requestHeaders(
-                                headerWithName(HttpHeaders.CONTENT_TYPE).description("Json 타입의 숫자 + ','의 값을 보낸다. ex) 1, 3, 5")
+                                headerWithName(HttpHeaders.CONTENT_TYPE).description("Json 타입의 숫자 + ','의 값을 보낸다. ex) 1, 3, 5"),
+                                headerWithName(AuthConstants.AUTH_HEADER).description("JWT")
                         ),
                         responseHeaders(
                                 headerWithName(HttpHeaders.LOCATION).description("Redirect URL")
                         )
                 ));
+
+        String[] split = str.split(", ");
+        Arrays.stream(split).forEach(s -> {
+            assertThrows(
+                    IdNotFoundException.class,
+                    () -> this.notificationRepository.findByNumber(Long.parseLong(s))
+                            .orElseThrow(() -> new IdNotFoundException("number " + s + " is not found"))
+            );
+        });
     }
 
     @Test
-    @DisplayName("Account의 notification를 삭제 실패(Principal과 Login Account 다름)")
-    @WithAccount("test@naver.com")
+    @DisplayName("Account의 notification를 삭제 실패(Principal) - 403")
     @Transactional
-    public void deleteAccountNotification_fail_accountMiss() throws Exception {
+    public void deleteAccountNotification_fail_principal() throws Exception {
         AccountForm accountForm = createAccountForm();
-        Account newAccount = saveAccount(accountForm);
+        Account account = saveAccount(accountForm);
 
-        ArticleForm articleForm = createArticleForm(1);
-        Article article = saveArticle(newAccount, articleForm);
-
-        for (int i = 0; i < 10; i++) {
-            this.saveNotification(article, newAccount);
-        }
-
-        List<Notification> all = this.notificationRepository.findAll();
-
-        String str = all.get(0).getNumber() + ", " + all.get(3).getNumber() + ", " + all.get(8).getNumber();
-
-        this.mockMvc.perform(delete("/accounts/{id}/comments", newAccount.getId())
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(str)
-                .with(csrf()))
-                .andDo(print())
-                .andExpect(status().isBadRequest());
-    }
-
-    @Test
-    @DisplayName("Account의 notification를 삭제 실패(이상한 URL 요청)")
-    @WithAccount("test@naver.com")
-    @Transactional
-    public void deleteAccountNotification_fail_unMatch() throws Exception {
-        Account account = this.accountRepository.findByEmail("test@naver.com").orElseThrow();
         ArticleForm articleForm = createArticleForm(1);
         Article article = saveArticle(account, articleForm);
 
@@ -250,22 +251,67 @@ public class AccountControllerTestWithNotification extends AccountMethods{
         }
 
         List<Notification> all = this.notificationRepository.findAll();
-
+        String token = createToken(account);
         String str = all.get(0).getNumber() + ", " + all.get(3).getNumber() + ", " + all.get(8).getNumber();
 
-        this.mockMvc.perform(delete("/accounts/{id}/comments", 1982739548)
+        this.mockMvc.perform(delete("/accounts/{id}/comments", account.getId())
+                .header(AuthConstants.AUTH_HEADER, token)
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(str)
-                .with(csrf()))
+                .content(str))
                 .andDo(print())
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isForbidden());
+
+        String[] split = str.split(", ");
+        Arrays.stream(split).forEach(s -> {
+            assertDoesNotThrow(
+                    () -> this.notificationRepository.findByNumber(Long.parseLong(s))
+                    .orElseThrow(() -> new IdNotFoundException("number " + s + " is not found"))
+            );
+        });
     }
 
     @Test
-    @DisplayName("Account의 notification를 삭제 실패(non principal)")
+    @DisplayName("Account의 notification를 삭제 실패(not found AccountId) - 404")
+    @WithAccount("test@testT.com")
     @Transactional
-    public void deleteAccountNotification_fail_principal() throws Exception {
+    public void deleteAccountNotification_fail_unMatch() throws Exception {
+        Account account = this.accountRepository.findByEmail("test@testT.com").orElseThrow();
+        ArticleForm articleForm = createArticleForm(1);
+        Article article = saveArticle(account, articleForm);
+
+        for (int i = 0; i < 10; i++) {
+            this.saveNotification(article, account);
+        }
+
+        List<Notification> all = this.notificationRepository.findAll();
+        String token = createToken(account);
+        String str = all.get(0).getNumber() + ", " + all.get(3).getNumber() + ", " + all.get(8).getNumber();
+
+        this.mockMvc.perform(delete("/accounts/{id}/comments", 1982739548)
+                .header(AuthConstants.AUTH_HEADER, token)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(str))
+                .andDo(print())
+                .andExpect(status().isNotFound());
+
+        String[] split = str.split(", ");
+        Arrays.stream(split).forEach(s -> {
+            assertDoesNotThrow(
+                    () -> this.notificationRepository.findByNumber(Long.parseLong(s))
+                            .orElseThrow(() -> new IdNotFoundException("number " + s + " is not found"))
+            );
+        });
+    }
+
+    @Test
+    @DisplayName("Account의 notification를 삭제 실패(unMatch Principal and Account) - 400")
+    @WithAccount("test@testT.com")
+    @Transactional
+    public void deleteAccountNotification_fail_accountMiss() throws Exception {
+        Account account = this.accountRepository.findByEmail("test@testT.com").orElseThrow();
         AccountForm accountForm = createAccountForm();
+        accountForm.setEmail("test2@testT.com");
+        accountForm.setUsername("test2 Username");
         Account newAccount = saveAccount(accountForm);
 
         ArticleForm articleForm = createArticleForm(1);
@@ -276,14 +322,54 @@ public class AccountControllerTestWithNotification extends AccountMethods{
         }
 
         List<Notification> all = this.notificationRepository.findAll();
-
+        String token = createToken(account);
         String str = all.get(0).getNumber() + ", " + all.get(3).getNumber() + ", " + all.get(8).getNumber();
 
         this.mockMvc.perform(delete("/accounts/{id}/comments", newAccount.getId())
+                .header(AuthConstants.AUTH_HEADER, token)
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(str)
-                .with(csrf()))
+                .content(str))
                 .andDo(print())
-                .andExpect(status().isNotFound());
+                .andExpect(status().isBadRequest());
+
+        String[] split = str.split(", ");
+        Arrays.stream(split).forEach(s -> {
+            assertDoesNotThrow(
+                    () -> this.notificationRepository.findByNumber(Long.parseLong(s))
+                            .orElseThrow(() -> new IdNotFoundException("number " + s + " is not found"))
+            );
+        });
+    }
+
+    @Test
+    @DisplayName("Account의 notification를 삭제 실패 (JWT error) - 3xx")
+    @WithAccount("test@testT.com")
+    @Transactional
+    public void deleteAccountNotification_fail_JWT() throws Exception {
+        Account account = this.accountRepository.findByEmail("test@testT.com").orElseThrow();
+
+        ArticleForm articleForm = createArticleForm(1);
+        Article article = saveArticle(account, articleForm);
+
+        for (int i = 0; i < 10; i++) {
+            this.saveNotification(article, account);
+        }
+
+        List<Notification> all = this.notificationRepository.findAll();
+        String str = all.get(0).getNumber() + ", " + all.get(3).getNumber() + ", " + all.get(8).getNumber();
+
+        this.mockMvc.perform(delete("/accounts/{id}/comments", account.getId())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(str))
+                .andDo(print())
+                .andExpect(status().is3xxRedirection());
+
+        String[] split = str.split(", ");
+        Arrays.stream(split).forEach(s -> {
+            assertDoesNotThrow(
+                    () -> this.notificationRepository.findByNumber(Long.parseLong(s))
+                            .orElseThrow(() -> new IdNotFoundException("number " + s + " is not found"))
+            );
+        });
     }
 }
