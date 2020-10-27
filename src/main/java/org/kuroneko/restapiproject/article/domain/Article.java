@@ -39,7 +39,7 @@ public class Article {
     private LocalDateTime createTime;
     private LocalDateTime updateTime;
 
-    @OneToMany
+    @OneToMany(fetch = FetchType.EAGER)
     @JsonManagedReference
     private Set<Comments> comments = new HashSet<>();
 

@@ -1,6 +1,5 @@
-package org.kuroneko.restapiproject.account;
+package org.kuroneko.restapiproject.token;
 
-import org.kuroneko.restapiproject.account.domain.Account;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -12,16 +11,19 @@ import java.util.Optional;
 @Component
 public class AccountDetailsService implements UserDetailsService {
     @Autowired
-    private AccountRepository accountRepository;
+    private AccountVORepository accountVORepository;
 
     @Override
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
-        Optional<Account> byEmail = this.accountRepository.findByEmail(email);
-
+        Optional<AccountVO> byEmail = accountVORepository.findByEmail(email);
         if (byEmail.isEmpty()) {
             throw new UsernameNotFoundException(email);
         }
-
-        return new AccountUser(byEmail.get());
+        AccountVO accountVO = byEmail.get();
+        return AccountUser.builder()
+                .username(accountVO.getEmail())
+                .password(accountVO.getPassword())
+                .roles(accountVO.getAuthority().toString())
+                .build();
     }
 }

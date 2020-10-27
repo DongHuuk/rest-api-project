@@ -10,7 +10,6 @@ public class CommentForm {
     @NotEmpty
     private String description;
 
-    @NotEmpty
     private boolean originNo; //checking sub comments
 
 }

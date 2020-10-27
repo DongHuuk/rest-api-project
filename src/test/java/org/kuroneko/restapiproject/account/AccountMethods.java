@@ -3,16 +3,17 @@ package org.kuroneko.restapiproject.account;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.kuroneko.restapiproject.account.domain.Account;
 import org.kuroneko.restapiproject.account.domain.AccountForm;
-import org.kuroneko.restapiproject.account.domain.UserAuthority;
+import org.kuroneko.restapiproject.article.ArticleRepository;
 import org.kuroneko.restapiproject.article.domain.Article;
 import org.kuroneko.restapiproject.article.domain.ArticleForm;
-import org.kuroneko.restapiproject.article.ArticleRepository;
 import org.kuroneko.restapiproject.article.domain.ArticleThema;
-import org.kuroneko.restapiproject.comments.CommentsForm;
 import org.kuroneko.restapiproject.comments.CommentsRepository;
+import org.kuroneko.restapiproject.comments.domain.CommentForm;
 import org.kuroneko.restapiproject.comments.domain.Comments;
 import org.kuroneko.restapiproject.notification.NotificationRepository;
 import org.kuroneko.restapiproject.notification.domain.Notification;
+import org.kuroneko.restapiproject.token.AccountVORepository;
+import org.kuroneko.restapiproject.token.TokenUtils;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -33,23 +34,29 @@ public class AccountMethods {
     @Autowired private ArticleRepository articleRepository;
     @Autowired private CommentsRepository commentsRepository;
     @Autowired private NotificationRepository notificationRepository;
+    @Autowired private AccountVORepository accountVORepository;
+    @Autowired private AccountService accountService;
+
+    public static final String EMAIL = "test@testT.com";
+    public static final String SEC_EMAIL = "test2@testT.com";
+
+    public String createToken(Account account) {
+        return TokenUtils.generateJwtToken(this.accountVORepository
+                .findByEmail(account.getEmail()).orElseThrow());
+    }
 
     public AccountForm createAccountForm(){
         AccountForm accountForm = new AccountForm();
-        accountForm.setEmail("Test@email.com");
-        accountForm.setPassword("12341234");
-        accountForm.setCheckingPassword("12341234");
+        accountForm.setEmail("test@testT.com");
+        accountForm.setPassword("1234567890");
+        accountForm.setCheckingPassword("1234567890");
         accountForm.setUsername("Test Method User Create");
         return accountForm;
     }
 
     public Account saveAccount(AccountForm accountForm) {
         Account account = modelMapper.map(accountForm, Account.class);
-        account.setAuthority(UserAuthority.USER);
-        account.setCreateTime(LocalDateTime.now());
-        account.setPassword(this.passwordEncoder.encode(accountForm.getPassword()));
-
-        return accountRepository.save(account);
+        return this.accountService.createNewAccount(account);
     }
 
     public ArticleForm createArticleForm(int division){
@@ -105,15 +112,15 @@ public class AccountMethods {
         return newArticle;
     }
 
-    public CommentsForm createCommentsForm(String message){
-        CommentsForm commentsForm = new CommentsForm();
-        commentsForm.setDescription(message);
-        return commentsForm;
+    public CommentForm createCommentForm(String message){
+        CommentForm CommentForm = new CommentForm();
+        CommentForm.setDescription(message);
+        return CommentForm;
     }
 
-    public Comments saveComments(CommentsForm commentsForm, Article article, Account account, int i){
+    public Comments saveComments(CommentForm CommentForm, Article article, Account account, int i){
         Comments comments = new Comments();
-        comments.setDescription(commentsForm.getDescription());
+        comments.setDescription(CommentForm.getDescription());
         comments.setCreateTime(LocalDateTime.now().plusHours(i));
         this.commentsRepository.save(comments);
         comments.setNumber(comments.getId() + 1);

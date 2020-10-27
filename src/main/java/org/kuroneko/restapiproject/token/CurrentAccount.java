@@ -1,4 +1,4 @@
-package org.kuroneko.restapiproject.account;
+package org.kuroneko.restapiproject.token;
 
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 
@@ -9,6 +9,6 @@ import java.lang.annotation.Target;
 
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.PARAMETER)
-@AuthenticationPrincipal(expression = "#this == 'anonymousUser' ? null : account")
+@AuthenticationPrincipal(expression = "#this == 'anonymousUser' ? null : #this")
 public @interface CurrentAccount {
 }

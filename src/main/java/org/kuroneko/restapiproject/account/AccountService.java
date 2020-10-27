@@ -1,17 +1,22 @@
 package org.kuroneko.restapiproject.account;
 
 import javassist.NotFoundException;
+import lombok.extern.slf4j.Slf4j;
 import org.kuroneko.restapiproject.account.domain.Account;
 import org.kuroneko.restapiproject.account.domain.AccountForm;
+import org.kuroneko.restapiproject.account.domain.AccountPasswordForm;
 import org.kuroneko.restapiproject.account.domain.UserAuthority;
 import org.kuroneko.restapiproject.article.domain.Article;
 import org.kuroneko.restapiproject.article.domain.ArticleDTO;
 import org.kuroneko.restapiproject.comments.CommentsDTO;
 import org.kuroneko.restapiproject.comments.CommentsRepository;
 import org.kuroneko.restapiproject.comments.domain.Comments;
+import org.kuroneko.restapiproject.exception.PasswordInputError;
 import org.kuroneko.restapiproject.notification.NotificationDTO;
 import org.kuroneko.restapiproject.notification.NotificationRepository;
 import org.kuroneko.restapiproject.notification.domain.Notification;
+import org.kuroneko.restapiproject.token.AccountVO;
+import org.kuroneko.restapiproject.token.AccountVORepository;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -22,9 +27,13 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.Errors;
 
 import java.time.LocalDateTime;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @Transactional
 public class AccountService {
@@ -41,11 +50,17 @@ public class AccountService {
     private NotificationRepository notificationRepository;
     @Autowired
     private ModelMapper modelMapper;
+    @Autowired
+    private AccountVORepository accountVORepository;
 
     public Account createNewAccount(Account account) {
         account.setCreateTime(LocalDateTime.now());
         account.setAuthority(UserAuthority.USER);
         account.setPassword(passwordEncoder.encode(account.getPassword()));
+        AccountVO accountVO = new AccountVO(account.getEmail(), account.getPassword(), account.getAuthority());
+        accountVO.setCreatedAt(LocalDateTime.now());
+        accountVO.setAuthority(UserAuthority.USER);
+        this.accountVORepository.save(accountVO);
 
         return accountRepository.save(account);
     }
@@ -89,19 +104,25 @@ public class AccountService {
             errors.rejectValue("username", "wrong.username", "duplicate username. check please");
         }
 
-        if (!this.passwordEncoder.matches(accountForm.getPassword(), account.getPassword())) {
-            errors.rejectValue("password", "wrong.password", "unMatch Password. check please");
-        }
+//        if (!this.passwordEncoder.matches(accountForm.getPassword(), account.getPassword())) {
+//            errors.rejectValue("password", "wrong.password", "unMatch Password. check please");
+//        }
 
         return errors;
     }
 
-    public Account updateAccount(Account account) {
+    public Account updateAccount(Account account, AccountForm accountForm) {
         account.setUpdateTime(LocalDateTime.now());
+        account.setUsername(accountForm.getUsername());
+        account.setPassword(this.passwordEncoder.encode(accountForm.getPassword()));
+
         return accountRepository.save(account);
     }
 
-    public void deleteAccount(Account account) {
+    public void deleteAccount(Account account, AccountPasswordForm accountPasswordForm) {
+        if (!accountPasswordForm.checkedPassword()) throw new PasswordInputError();
+        if (!this.passwordEncoder.matches(accountPasswordForm.getPassword(), account.getPassword()))
+            throw new PasswordInputError();
         this.accountRepository.delete(account);
     }
 
@@ -123,7 +144,7 @@ public class AccountService {
                 accountWithArticles.getArticle().remove(article);
             }
         }
-        this.articleRepository.deleteAllByIdInQuery(byNumber.stream().map(Article::getNumber).collect(Collectors.toList()));
+        this.articleRepository.deleteAllByIdInQuery(byNumber.stream().map(Article::getId).collect(Collectors.toList()));
     }
 
     public void findCommentsAndDelete(Account accountWithComments, String checked) throws NotFoundException {
@@ -135,7 +156,7 @@ public class AccountService {
 
         List<Comments> byNumber = this.commentsRepository.findByNumber(collect);
 
-        if (byNumber.isEmpty()) {
+        if (byNumber.isEmpty() || byNumber.size() != split.length) {
             throw new NotFoundException("Not Found Articles by Numbers");
         }
 
@@ -214,6 +235,4 @@ public class AccountService {
             return c;
         });
     }
-
-
 }

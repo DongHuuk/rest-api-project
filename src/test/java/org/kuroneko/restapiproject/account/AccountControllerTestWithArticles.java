@@ -12,6 +12,9 @@ import org.kuroneko.restapiproject.article.domain.Article;
 import org.kuroneko.restapiproject.article.domain.ArticleForm;
 import org.kuroneko.restapiproject.article.ArticleRepository;
 import org.kuroneko.restapiproject.config.WithAccount;
+import org.kuroneko.restapiproject.exception.IdNotFoundException;
+import org.kuroneko.restapiproject.token.AccountVORepository;
+import org.kuroneko.restapiproject.token.AuthConstants;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.restdocs.AutoConfigureRestDocs;
@@ -25,17 +28,20 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Arrays;
 import java.util.List;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.springframework.restdocs.headers.HeaderDocumentation.*;
 import static org.springframework.restdocs.headers.HeaderDocumentation.headerWithName;
-import static org.springframework.restdocs.hypermedia.HypermediaDocumentation.linkWithRel;
-import static org.springframework.restdocs.hypermedia.HypermediaDocumentation.links;
+import static org.springframework.restdocs.hypermedia.HypermediaDocumentation.*;
 import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.document;
 import static org.springframework.restdocs.payload.PayloadDocumentation.*;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @Slf4j
@@ -51,26 +57,30 @@ public class AccountControllerTestWithArticles extends AccountMethods{
     @Autowired private ModelMapper modelMapper;
     @Autowired private PasswordEncoder passwordEncoder;
     @Autowired private ArticleRepository articleRepository;
+    @Autowired private AccountVORepository accountVORepository;
 
     @AfterEach
     private void deleteAccountRepository_After(){
         this.articleRepository.deleteAll();
         this.accountRepository.deleteAll();
+        this.accountVORepository.deleteAll();
     }
 
     @Test
-    @DisplayName("Account의 articles를 조회 성공")
-    @WithAccount("test@naver.com")
+    @DisplayName("Account의 articles를 조회 성공 - 200")
+    @WithAccount(EMAIL)
     @Transactional
     public void findAccountsArticles() throws Exception{
-        Account account = this.accountRepository.findByEmail("test@naver.com").orElseThrow();
+        Account account = this.accountRepository.findByEmail(EMAIL).orElseThrow();
+        String token = createToken(account);
 
         for(int i = 0; i<50; i++){
             ArticleForm articleForm = createArticleForm(1);
             saveArticle(account, articleForm, i);
         }
 
-        this.mockMvc.perform(get("/accounts/{id}/articles", account.getId()))
+        this.mockMvc.perform(get("/accounts/{id}/articles", account.getId())
+                .header(AuthConstants.AUTH_HEADER, token))
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andDo(document("get-Account-Article",
@@ -111,51 +121,115 @@ public class AccountControllerTestWithArticles extends AccountMethods{
     }
 
     @Test
-    @DisplayName("Account의 articles를 조회 실패(존재하지 않는 account 조회)")
+    @DisplayName("Account의 articles를 조회 실패 (JWT Error) - 3xx")
+    @WithAccount(EMAIL)
     @Transactional
-    @WithAccount("test1@test.com")
-    public void findAccountsArticles_fail_1() throws Exception {
-        this.mockMvc.perform(get("/accounts/12345/articles"))
+    public void findAccountsArticles_JWT() throws Exception {
+        Account account = this.accountRepository.findByEmail(EMAIL).orElseThrow();
+
+        this.mockMvc.perform(get("/accounts/{id}/articles", account.getId()))
                 .andDo(print())
-                .andExpect(status().isBadRequest());
+                .andExpect(status().is3xxRedirection());
     }
 
     @Test
-    @DisplayName("Account의 articles를 조회 실패(nonPrincipal)")
+    @DisplayName("Account의 articles를 조회 실패 (Principal) - 403")
     @Transactional
-    public void findAccountsArticles_fail_principal() throws Exception {
+    public void findAccountsArticles_Principal() throws Exception {
         AccountForm accountForm = createAccountForm();
         Account account = saveAccount(accountForm);
 
-        this.mockMvc.perform(get("/accounts/{id}/articles", account.getId()))
+        String token = createToken(account);
+
+        this.mockMvc.perform(get("/accounts/{id}/articles", account.getId())
+                .header(AuthConstants.AUTH_HEADER, token))
+                .andDo(print())
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @DisplayName("Account의 articles를 조회 실패 (Not Found account Id) - 404")
+    @Transactional
+    @WithAccount(EMAIL)
+    public void findAccountsArticles_AccountId() throws Exception {
+        Account account = this.accountRepository.findByEmail(EMAIL).orElseThrow();
+        String token = createToken(account);
+
+        this.mockMvc.perform(get("/accounts/12345/articles")
+                .header(AuthConstants.AUTH_HEADER, token))
                 .andDo(print())
                 .andExpect(status().isNotFound());
     }
 
     @Test
-    @DisplayName("Account의 articles를 조회 실패(principal과 조회 하려는 Account의 Id가 다를 경우)")
+    @DisplayName("Account의 articles를 조회 실패 (unmatch Principal and Account) - 400")
     @Transactional
-    @WithAccount("test1@test.com")
-    public void findAccountsArticles_fail_unMatch() throws Exception {
+    @WithAccount(EMAIL)
+    public void findAccountsArticles_notMatch() throws Exception {
+        Account account = this.accountRepository.findByEmail(EMAIL).orElseThrow();
+
         AccountForm accountForm = createAccountForm();
-        Account account = saveAccount(accountForm);
+        accountForm.setEmail(SEC_EMAIL);
+        accountForm.setUsername("test2 username");
+        Account saveAccount = saveAccount(accountForm);
 
-        for(int i = 0; i<5; i++){
-            ArticleForm articleForm = createArticleForm(1);
-            saveArticle(account, articleForm, i);
-        }
+        String token = createToken(account);
 
-        this.mockMvc.perform(get("/accounts/{id}/articles", account.getId()))
+        this.mockMvc.perform(get("/accounts/{id}/articles", saveAccount.getId())
+                .header(AuthConstants.AUTH_HEADER, token))
                 .andDo(print())
                 .andExpect(status().isBadRequest());
     }
 
     @Test
-    @DisplayName("Account의 articles를 삭제 성공")
-    @WithAccount("test@naver.com")
+    @DisplayName("Account의 articles를 삭제 성공 - 204")
+    @WithAccount(EMAIL)
     @Transactional
     public void deleteAccountArticles_success() throws Exception {
-        Account account = this.accountRepository.findByEmail("test@naver.com").orElseThrow();
+        Account account = this.accountRepository.findByEmail(EMAIL).orElseThrow();
+
+        for(int i = 0; i<15; i++){
+            ArticleForm articleForm = createArticleForm(1);
+            saveArticle(account, articleForm, i);
+        }
+
+        String token = createToken(account);
+
+        List<Article> all = articleRepository.findAll();
+        String str = all.get(0).getNumber() + ", " + all.get(4).getNumber();
+
+        this.mockMvc.perform(delete("/accounts/{id}/articles", account.getId())
+                .contentType(MediaType.APPLICATION_JSON)
+                .header(AuthConstants.AUTH_HEADER, token)
+                .content(str))
+                .andDo(print())
+                .andExpect(status().isNoContent())
+                .andDo(document("delete-Account-Article",
+                        requestHeaders(
+                                headerWithName(HttpHeaders.CONTENT_TYPE).description("AJAX로 Json 타입의 숫자 + ','의 값을 보낸다. ex) 1, 3, 5"),
+                                headerWithName(AuthConstants.AUTH_HEADER).description("JWT")
+                        ),
+                        responseHeaders(
+                                headerWithName(HttpHeaders.LOCATION).description("Redirect URL")
+                        )
+                ));
+        String[] split = str.split(", ");
+        Arrays.stream(split).forEach(s -> {
+            Long number = Long.parseLong(s);
+            assertThrows(
+                    IdNotFoundException.class,
+                    () -> this.articleRepository.findByNumber(number)
+                            .orElseThrow(() -> new IdNotFoundException("number " + number + " is Not Found"))
+            );
+        });
+    }
+
+    @Test
+    @DisplayName("Account의 articles를 삭제 실패 (JWT error) - 3xx")
+    @WithAccount(EMAIL)
+    @Transactional
+    public void deleteAccountArticles_fail_JWT() throws Exception {
+        Account account = this.accountRepository.findByEmail(EMAIL).orElseThrow();
 
         for(int i = 0; i<15; i++){
             ArticleForm articleForm = createArticleForm(1);
@@ -163,31 +237,102 @@ public class AccountControllerTestWithArticles extends AccountMethods{
         }
 
         List<Article> all = articleRepository.findAll();
-        String str = all.get(0).getNumber() + ", " + all.get(4).getNumber();
+        String str = all.get(0).getNumber() + ", " + all.get(2).getNumber();
 
         this.mockMvc.perform(delete("/accounts/{id}/articles", account.getId())
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(str)
-                .with(csrf()))
+                .content(str))
                 .andDo(print())
-                .andExpect(status().isNoContent())
-                .andDo(document("delete-Account-Article",
-                        requestHeaders(
-                                headerWithName(HttpHeaders.CONTENT_TYPE).description("AJAX로 Json 타입의 숫자 + ','의 값을 보낸다. ex) 1, 3, 5")
-                        ),
-                        responseHeaders(
-                                headerWithName(HttpHeaders.LOCATION).description("Redirect URL")
-                        )
-                ));
+                .andExpect(status().is3xxRedirection());
+
+        String[] split = str.split(", ");
+        Arrays.stream(split).forEach(s -> {
+            Long number = Long.parseLong(s);
+            assertDoesNotThrow(
+                    () -> this.articleRepository.findByNumber(number)
+                            .orElseThrow(() -> new IdNotFoundException("number " + number + " is Not Found"))
+            );
+        });
     }
 
     @Test
-    @DisplayName("Account의 articles를 삭제 실패(Principal과 Login Account 다름)")
-    @WithAccount("test@naver.com")
+    @DisplayName("Account의 articles를 삭제 실패 (Principal) - 403")
     @Transactional
-    public void deleteAccountArticles_fail_accountMiss() throws Exception {
+    public void deleteAccountArticles_fail_Principal() throws Exception {
         AccountForm accountForm = createAccountForm();
+        Account account = saveAccount(accountForm);
+
+        for(int i = 0; i<15; i++){
+            ArticleForm articleForm = createArticleForm(1);
+            saveArticle(account, articleForm, i);
+        }
+
+        String token = createToken(account);
+        List<Article> all = articleRepository.findAll();
+        String str = all.get(0).getNumber() + ", " + all.get(2).getNumber();
+
+        this.mockMvc.perform(delete("/accounts/{id}/articles", account.getId())
+                .header(AuthConstants.AUTH_HEADER, token)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(str))
+                .andDo(print())
+                .andExpect(status().isForbidden());
+
+        String[] split = str.split(", ");
+        Arrays.stream(split).forEach(s -> {
+            Long number = Long.parseLong(s);
+            assertDoesNotThrow(
+                    () -> this.articleRepository.findByNumber(number)
+                            .orElseThrow(() -> new IdNotFoundException("number " + number + " is Not Found"))
+            );
+        });
+    }
+
+    @Test
+    @DisplayName("Account의 articles를 삭제 실패 (Not Found Account Id) - 404")
+    @WithAccount(EMAIL)
+    @Transactional
+    public void deleteAccountArticles_fail_AccountId() throws Exception {
+        Account account = accountRepository.findByEmail(EMAIL).orElseThrow();
+
+        for(int i = 0; i<15; i++){
+            ArticleForm articleForm = createArticleForm(1);
+            saveArticle(account, articleForm, i);
+        }
+
+        List<Article> all = articleRepository.findAll();
+        String str = all.get(0).getNumber() + ", " + all.get(2).getNumber();
+        String token = createToken(account);
+
+        this.mockMvc.perform(delete("/accounts/{id}/articles", 1982739548)
+                .header(AuthConstants.AUTH_HEADER, token)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(str))
+                .andDo(print())
+                .andExpect(status().isNotFound());
+
+        String[] split = str.split(", ");
+        Arrays.stream(split).forEach(s -> {
+            Long number = Long.parseLong(s);
+            assertDoesNotThrow(
+                    () -> this.articleRepository.findByNumber(number)
+                            .orElseThrow(() -> new IdNotFoundException("number " + number + " is Not Found"))
+            );
+        });
+    }
+
+    @Test
+    @DisplayName("Account의 articles를 삭제 실패 (unmatch Principal and Account) - 400")
+    @WithAccount(EMAIL)
+    @Transactional
+    public void deleteAccountArticles_fail_unMatch() throws Exception {
+        Account account = this.accountRepository.findByEmail(EMAIL).orElseThrow();
+        AccountForm accountForm = createAccountForm();
+        accountForm.setEmail(SEC_EMAIL);
+        accountForm.setUsername("test username by 2");
         Account newAccount = saveAccount(accountForm);
+
+        String token = createToken(account);
 
         for(int i = 0; i<15; i++){
             ArticleForm articleForm = createArticleForm(1);
@@ -195,60 +340,57 @@ public class AccountControllerTestWithArticles extends AccountMethods{
         }
 
         List<Article> all = articleRepository.findAll();
-        String str = all.get(0).getId() + ", " + all.get(2).getId();
+        String str = all.get(0).getNumber() + ", " + all.get(2).getNumber();
 
         this.mockMvc.perform(delete("/accounts/{id}/articles", newAccount.getId())
+                .header(AuthConstants.AUTH_HEADER, token)
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(str)
-                .with(csrf()))
+                .content(str))
                 .andDo(print())
                 .andExpect(status().isBadRequest());
+
+        String[] split = str.split(", ");
+        Arrays.stream(split).forEach(s -> {
+            Long number = Long.parseLong(s);
+            assertDoesNotThrow(
+                    () -> this.articleRepository.findByNumber(number)
+                            .orElseThrow(() -> new IdNotFoundException("number " + number + " is Not Found"))
+            );
+        });
     }
 
     @Test
-    @DisplayName("Account의 articles를 삭제 실패(이상한 URL 요청)")
-    @WithAccount("test@naver.com")
+    @DisplayName("Account의 articles를 삭제 실패 (Bad Request Numbers) - 400")
+    @WithAccount(EMAIL)
     @Transactional
-    public void deleteAccountArticles_fail_unMatch() throws Exception {
-        Account account = accountRepository.findByEmail("test@naver.com").orElseThrow();
+    public void deleteAccountArticles_fail_number() throws Exception {
+        Account account = accountRepository.findByEmail(EMAIL).orElseThrow();
 
         for(int i = 0; i<15; i++){
             ArticleForm articleForm = createArticleForm(1);
             saveArticle(account, articleForm, i);
         }
 
-        List<Article> all = articleRepository.findAll();
-        String str = all.get(0).getId() + ", " + all.get(2).getId();
-
-        this.mockMvc.perform(delete("/accounts/{id}/articles", 1982739548)
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(str)
-                .with(csrf()))
-                .andDo(print())
-                .andExpect(status().isBadRequest());
-    }
-
-    @Test
-    @DisplayName("Account의 articles를 삭제 실패(non principal)")
-    @Transactional
-    public void deleteAccountArticles_fail_principal() throws Exception {
-        AccountForm accountForm = createAccountForm();
-        Account account = saveAccount(accountForm);
-
-        for(int i = 0; i<15; i++){
-            ArticleForm articleForm = createArticleForm(1);
-            saveArticle(account, articleForm, i);
-        }
-
-        List<Article> all = articleRepository.findAll();
-        String str = all.get(0).getId() + ", " + all.get(2).getId();
+        List<Article> all = articleRepository.findByAccountId(account.getId());
+        String str = "30, 213, 5217";
+        String token = createToken(account);
 
         this.mockMvc.perform(delete("/accounts/{id}/articles", account.getId())
+                .header(AuthConstants.AUTH_HEADER, token)
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(str)
-                .with(csrf()))
+                .content(str))
                 .andDo(print())
-                .andExpect(status().isNotFound());
-    }
+                .andExpect(jsonPath("$._links").exists())
+                .andExpect(jsonPath("$..errors").exists())
+                .andExpect(status().isBadRequest());
 
+        String[] split = str.split(", ");
+        Arrays.stream(split).forEach(s -> {
+            Long number = Long.parseLong(s);
+            assertThrows(IdNotFoundException.class,
+                    () -> this.articleRepository.findByNumber(number)
+                            .orElseThrow(() -> new IdNotFoundException("number " + number + " is Not Found"))
+            );
+        });
+    }
 }
