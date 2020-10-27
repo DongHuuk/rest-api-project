@@ -40,8 +40,9 @@ import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
 @Slf4j
 @RestController
 @RequestMapping(value = "/accounts", produces = "application/hal+json;charset=UTF-8")
-public class AccountController {
+public class AccountController extends StatusMethod{
     //TODO 매핑 객체 미완성으로 인해 link는 self만 추가하였음. 메서드가 완성 되었다면 추가적으로 입력해야 할
+    //TODO Response로 JWT를 생성해서 Header에 추가해서 넘겨줘야 하는가에 대해 front 작업 하면서 확인할 것
     @Autowired
     private ModelMapper modelMapper;
     @Autowired
@@ -63,10 +64,6 @@ public class AccountController {
     @InitBinder("accountPasswordForm")
     public void checkingAccountPasswordForm(WebDataBinder webDataBinder){
         webDataBinder.addValidators(accountPasswordValidation);
-    }
-
-    private ResponseEntity<ErrorsResource> badRequest(Errors errors) {
-        return ResponseEntity.badRequest().body(new ErrorsResource(errors));
     }
 
     private Link getAccountProfile(Long id){
@@ -107,44 +104,13 @@ public class AccountController {
         return accountResource;
     }
 
-    private boolean checkAccountVO(AccountVO accountVO) {
-        return accountVO == null;
-    }
-    private ResponseEntity returnFORBIDDEN(){
-        return new ResponseEntity(HttpStatus.FORBIDDEN);
-    }
-
-    private boolean checkErrors(Errors errors){
-        return errors.hasErrors();
-    }
-
-    private boolean checkId(Optional<?> objectOptional) {
-        return objectOptional.isEmpty();
-    }
-
-    private ResponseEntity returnNotFound(){
-        return new ResponseEntity(HttpStatus.NOT_FOUND);
-    }
-
-    private boolean checkEmail(String accountEmail, String accountVOEmail) {
-        return accountEmail.equals(accountVOEmail);
-    }
-
-    private ResponseEntity returnBadRequest(){
-        return new ResponseEntity(HttpStatus.BAD_REQUEST);
-    }
-
-    private ResponseEntity returnNOCONTENT(HttpHeaders httpHeaders) {
-        return new ResponseEntity(httpHeaders, HttpStatus.NO_CONTENT);
-    }
-
     @PostMapping
     public ResponseEntity createAccount(@RequestBody @Valid AccountForm accountForm, Errors errors){
-        if (this.checkErrors(errors)) return badRequest(errors);
+        if (this.checkErrors(errors)) return returnBadRequestWithErrors(errors);
 
         errors = accountService.checkAccountEmailAndUsername(accountForm, errors);
 
-        if (this.checkErrors(errors)) return badRequest(errors);
+        if (this.checkErrors(errors)) return returnBadRequestWithErrors(errors);
 
         Account newAccount = accountService.createNewAccount(modelMapper.map(accountForm, Account.class));
 
@@ -175,7 +141,7 @@ public class AccountController {
                                         @PathVariable Long id,
                                         @RequestBody @Valid AccountForm accountForm, Errors errors) {
         if (this.checkAccountVO(accountVO)) return this.returnFORBIDDEN();
-        if (this.checkErrors(errors)) return this.badRequest(errors);
+        if (this.checkErrors(errors)) return this.returnBadRequestWithErrors(errors);
 
         Optional<Account> accountById = accountRepository.findById(id);
         if (this.checkId(accountById)) return this.returnNotFound();
@@ -183,7 +149,7 @@ public class AccountController {
         Account account = accountById.get();
 
         errors = accountService.checkUpdateAccount(accountForm, errors, account);
-        if (this.checkErrors(errors)) return this.badRequest(errors);
+        if (this.checkErrors(errors)) return this.returnBadRequestWithErrors(errors);
 
         this.accountService.updateAccount(account, accountForm);
 
@@ -198,7 +164,7 @@ public class AccountController {
                                         @RequestBody @Valid AccountPasswordForm accountPasswordForm,
                                         Errors errors) {
         if(this.checkAccountVO(accountVO)) return this.returnFORBIDDEN();
-        if (this.checkErrors(errors)) return this.badRequest(errors);
+        if (this.checkErrors(errors)) return this.returnBadRequestWithErrors(errors);
         Optional<Account> byId = this.accountRepository.findById(id);
 
         if (this.checkId(byId)) return this.returnNotFound();
@@ -210,7 +176,6 @@ public class AccountController {
 
         return new ResponseEntity(httpHeaders, HttpStatus.NO_CONTENT);
     }
-    //TODO 이 아래부터 작업 재개
 
     @GetMapping("/{id}/articles")
     public ResponseEntity findAccountsArticles(@CurrentAccount AccountVO accountVO, @PathVariable("id") Long id
@@ -259,7 +224,6 @@ public class AccountController {
         return this.returnNOCONTENT(httpHeaders);
     }
 
-    //TODO 여기부터
     //댓글들 리턴
     @GetMapping("/{id}/comments")
     public ResponseEntity findAccountsComments(@CurrentAccount AccountVO accountVO, @PathVariable("id") Long id,

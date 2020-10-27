@@ -116,13 +116,13 @@ class AccountControllerTest extends AccountMethods{
                 .param("username", "흑우냥이")
                 .param("password", "12341234")
                 .param("checkingPassword","12341234")
-                .param("email", "test@testT.com"))
+                .param("email", EMAIL))
                 .andDo(print())
                 .andExpect(status().isUnsupportedMediaType());
 
         assertThrows(IdNotFoundException.class,
-                () -> this.accountRepository.findByEmail("test@testT.com")
-                        .orElseThrow(() -> new IdNotFoundException("test@testT.com"))
+                () -> this.accountRepository.findByEmail(EMAIL)
+                        .orElseThrow(() -> new IdNotFoundException(EMAIL))
         );
     }
 
@@ -141,16 +141,16 @@ class AccountControllerTest extends AccountMethods{
                 .andExpect(jsonPath("$.errors").exists());
 
         assertThrows(IdNotFoundException.class,
-                () -> this.accountRepository.findByEmail("test@testT.com")
-                        .orElseThrow(() -> new IdNotFoundException("test@testT.com"))
+                () -> this.accountRepository.findByEmail(EMAIL)
+                        .orElseThrow(() -> new IdNotFoundException(EMAIL))
         );
     }
 
     @Test
-    @WithAccount("test@testT.com")
+    @WithAccount(EMAIL)
     @DisplayName("Account 생성 실패 (Validator duplicate username) - 400")
     public void createAccount_error_emailDuplicate() throws Exception{
-        Account account = this.accountRepository.findByEmail("test@testT.com").orElseThrow();
+        Account account = this.accountRepository.findByEmail(EMAIL).orElseThrow();
         AccountForm accountForm = createAccountForm();
         accountForm.setUsername(account.getUsername());
 
@@ -165,7 +165,7 @@ class AccountControllerTest extends AccountMethods{
 
         List<Account> all = this.accountRepository.findAll();
         assertEquals(all.size(), 1);
-        assertEquals(all.get(0).getEmail(), "test@testT.com");
+        assertEquals(all.get(0).getEmail(), EMAIL);
     }
 
     @Test
@@ -173,7 +173,7 @@ class AccountControllerTest extends AccountMethods{
     public void createAccount_error_usernameDuplicate() throws Exception{
         AccountForm accountForm = createAccountForm();
         saveAccount(accountForm);
-        accountForm.setEmail("test2@gmail.com");
+        accountForm.setEmail(SEC_EMAIL);
 
         this.mockMvc.perform(post("/accounts")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -185,14 +185,14 @@ class AccountControllerTest extends AccountMethods{
 
         List<Account> all = this.accountRepository.findAll();
         assertEquals(all.size(), 1);
-        assertEquals(all.get(0).getEmail(), "test@testT.com");
+        assertEquals(all.get(0).getEmail(), EMAIL);
     }
 
     @Test
-    @WithAccount("test@testT.com")
+    @WithAccount(EMAIL)
     @DisplayName("Account 조회 성공 - 200")
     public void sendAccount() throws Exception {
-        Account account = this.accountRepository.findByEmail("test@testT.com").orElseThrow();
+        Account account = this.accountRepository.findByEmail(EMAIL).orElseThrow();
         String token = createToken(account);
         this.mockMvc.perform(get("/accounts/{id}", account.getId())
                 .accept(MediaTypes.HAL_JSON)
@@ -220,9 +220,9 @@ class AccountControllerTest extends AccountMethods{
 
     @Test
     @DisplayName("Account 조회 실패 (JWT error) - 3xx")
-    @WithAccount("test@testT.com")
+    @WithAccount(EMAIL)
     public void sendAccount_token() throws Exception {
-        Account account = this.accountRepository.findByEmail("test@testT.com").orElseThrow();
+        Account account = this.accountRepository.findByEmail(EMAIL).orElseThrow();
 
         this.mockMvc.perform(get("/accounts/{id}", account.getId())
                 .accept(MediaTypes.HAL_JSON))
@@ -246,9 +246,9 @@ class AccountControllerTest extends AccountMethods{
 
     @Test
     @DisplayName("Account 조회 실패 (Account Id) - 404")
-    @WithAccount("test@testT.com")
+    @WithAccount(EMAIL)
     public void sendAccount_notFound() throws Exception {
-        Account account = this.accountRepository.findByEmail("test@testT.com").orElseThrow();
+        Account account = this.accountRepository.findByEmail(EMAIL).orElseThrow();
         String token = createToken(account);
 
         this.mockMvc.perform(get("/accounts/532151235")
@@ -259,10 +259,10 @@ class AccountControllerTest extends AccountMethods{
     }
 
     @Test
-    @WithAccount("test@testT.com")
+    @WithAccount(EMAIL)
     @DisplayName("Account 갱신 성공 - 201")
     public void updateAccount() throws Exception {
-        Account account = this.accountRepository.findByEmail("test@testT.com").orElseThrow();
+        Account account = this.accountRepository.findByEmail(EMAIL).orElseThrow();
         AccountForm accountForm = createAccountForm();
         accountForm.setUsername("테스트2");
         accountForm.setPassword("0987654321");
@@ -299,10 +299,10 @@ class AccountControllerTest extends AccountMethods{
     }
 
     @Test
-    @WithAccount("test@testT.com")
+    @WithAccount(EMAIL)
     @DisplayName("Account 갱신 실패 (JWT error) - 304")
     public void updateAccount_JWT() throws Exception {
-        Account account = this.accountRepository.findByEmail("test@testT.com").orElseThrow();
+        Account account = this.accountRepository.findByEmail(EMAIL).orElseThrow();
         AccountForm accountForm = createAccountForm();
         accountForm.setUsername("테스트2");
 
@@ -320,7 +320,7 @@ class AccountControllerTest extends AccountMethods{
         AccountForm accountForm = createAccountForm();
         Account account = saveAccount(accountForm);
 
-        accountForm.setEmail("test2@testT.com");
+        accountForm.setEmail(SEC_EMAIL);
         accountForm.setUsername("test2 username");
 
         String token = createToken(account);
@@ -335,16 +335,16 @@ class AccountControllerTest extends AccountMethods{
     }
 
     @Test
-    @WithAccount("test@testT.com")
+    @WithAccount(EMAIL)
     @DisplayName("Account 갱신 실패 (Validator_duplicate_username) - 400")
     @Transactional
     public void updateAccount_error_validator_duplicate_username() throws Exception {
-        Account account = this.accountRepository.findByEmail("test@testT.com").orElseThrow();
+        Account account = this.accountRepository.findByEmail(EMAIL).orElseThrow();
         account.setUsername("Test Method User Create");
 
         AccountForm accountForm = createAccountForm();
         accountForm.setUsername("Test Method User Create2");
-        accountForm.setEmail("test2@gmail.com");
+        accountForm.setEmail(SEC_EMAIL);
         Account account2 = saveAccount(accountForm);
         accountForm.setUsername("Test Method User Create");
 
@@ -363,10 +363,10 @@ class AccountControllerTest extends AccountMethods{
     }
 
     @Test
-    @WithAccount("test@testT.com")
+    @WithAccount(EMAIL)
     @DisplayName("Account 갱신 실패 (Validator_password) - 400")
     public void updateAccount_error_validator_password() throws Exception {
-        Account account = this.accountRepository.findByEmail("test@testT.com").orElseThrow();
+        Account account = this.accountRepository.findByEmail(EMAIL).orElseThrow();
 
         AccountForm accountForm = createAccountForm();
         accountForm.setUsername("update method error");
@@ -387,10 +387,10 @@ class AccountControllerTest extends AccountMethods{
     }
 
     @Test
-    @WithAccount("test@testT.com")
+    @WithAccount(EMAIL)
     @DisplayName("Account 갱신 실패 (Account Id) - 404")
     public void updateAccount_error_notFoundId() throws Exception {
-        Account account = this.accountRepository.findByEmail("test@testT.com").orElseThrow();
+        Account account = this.accountRepository.findByEmail(EMAIL).orElseThrow();
         AccountForm accountForm = createAccountForm();
         accountForm.setUsername("테스트2");
 
@@ -406,10 +406,10 @@ class AccountControllerTest extends AccountMethods{
     }
 
     @Test
-    @WithAccount("test@testT.com")
+    @WithAccount(EMAIL)
     @DisplayName("Account 삭제 성공 - 204")
     public void deleteAccount() throws Exception{
-        Account account = this.accountRepository.findByEmail("test@testT.com").orElseThrow();
+        Account account = this.accountRepository.findByEmail(EMAIL).orElseThrow();
 
         String token = createToken(account);
 
@@ -444,10 +444,10 @@ class AccountControllerTest extends AccountMethods{
     }
 
     @Test
-    @WithAccount("test@testT.com")
+    @WithAccount(EMAIL)
     @DisplayName("Account 삭제 실패 (JWT error) - 3xx")
     public void deleteAccount_JWT() throws Exception {
-        Account account = this.accountRepository.findByEmail("test@testT.com").orElseThrow();
+        Account account = this.accountRepository.findByEmail(EMAIL).orElseThrow();
         AccountPasswordForm accountPasswordForm = new AccountPasswordForm();
         accountPasswordForm.setPassword("12341234");
         accountPasswordForm.setCheckingPassword("12345678900");
@@ -489,10 +489,10 @@ class AccountControllerTest extends AccountMethods{
     }
 
     @Test
-    @WithAccount("test@testT.com")
+    @WithAccount(EMAIL)
     @DisplayName("Account 삭제 실패 (validator accountPasswordForm) - 400")
     public void deleteAccount_error_validator_password() throws Exception {
-        Account account = this.accountRepository.findByEmail("test@testT.com").orElseThrow();
+        Account account = this.accountRepository.findByEmail(EMAIL).orElseThrow();
         AccountPasswordForm accountPasswordForm = new AccountPasswordForm();
         accountPasswordForm.setPassword("12341234");
         accountPasswordForm.setCheckingPassword("12345678900");
@@ -514,10 +514,10 @@ class AccountControllerTest extends AccountMethods{
     }
 
     @Test
-    @WithAccount("test@testT.com")
+    @WithAccount(EMAIL)
     @DisplayName("Account 삭제 실패 (Not Found Account Id) - 404")
     public void deleteAccount_error_notFoundId() throws Exception {
-        Account account = this.accountRepository.findByEmail("test@testT.com").orElseThrow();
+        Account account = this.accountRepository.findByEmail(EMAIL).orElseThrow();
         String token = createToken(account);
 
         AccountPasswordForm accountPasswordForm = new AccountPasswordForm();

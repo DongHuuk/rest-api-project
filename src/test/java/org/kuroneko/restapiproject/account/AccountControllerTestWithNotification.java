@@ -73,10 +73,10 @@ public class AccountControllerTestWithNotification extends AccountMethods{
 
     @Test
     @DisplayName("Account의 notfication을 조회 성공 - 200")
-    @WithAccount("test@testT.com")
+    @WithAccount(EMAIL)
     @Transactional
     public void getAccountNotification_success() throws Exception {
-        Account account = this.accountRepository.findByEmail("test@testT.com").orElseThrow();
+        Account account = this.accountRepository.findByEmail(EMAIL).orElseThrow();
         ArticleForm articleForm = createArticleForm(1);
         Article article = saveArticle(account, articleForm);
 
@@ -129,10 +129,10 @@ public class AccountControllerTestWithNotification extends AccountMethods{
 
     @Test
     @DisplayName("Account의 notification 조회 실패 (JWT error) - 3xx")
-    @WithAccount("test@testT.com")
+    @WithAccount(EMAIL)
     @Transactional
     public void findAccountsNotification_fail_JWT() throws Exception {
-        Account account = this.accountRepository.findByEmail("test@testT.com").orElseThrow();
+        Account account = this.accountRepository.findByEmail(EMAIL).orElseThrow();
 
         this.mockMvc.perform(get("/accounts/{id}/notification", account.getId()))
                 .andDo(print())
@@ -157,9 +157,9 @@ public class AccountControllerTestWithNotification extends AccountMethods{
     @Test
     @DisplayName("Account의 notification를 조회 실패(not Found Account Id) - 404")
     @Transactional
-    @WithAccount("test@testT.com")
+    @WithAccount(EMAIL)
     public void findAccountsNotification_fail_AccountId() throws Exception {
-        Account account = this.accountRepository.findByEmail("test@testT.com").orElseThrow();
+        Account account = this.accountRepository.findByEmail(EMAIL).orElseThrow();
         String token = createToken(account);
 
         this.mockMvc.perform(get("/accounts/{id}/notification", 132132189)
@@ -171,11 +171,11 @@ public class AccountControllerTestWithNotification extends AccountMethods{
     @Test
     @DisplayName("Account의 notification 조회 실패 (unMatch Account and Principal) - 400")
     @Transactional
-    @WithAccount("test@testT.com")
+    @WithAccount(EMAIL)
     public void findAccountsNotification_fail_unMatch() throws Exception {
-        Account account = this.accountRepository.findByEmail("test@testT.com").orElseThrow();
+        Account account = this.accountRepository.findByEmail(EMAIL).orElseThrow();
         AccountForm accountForm = createAccountForm();
-        accountForm.setEmail("test2@testT.com");
+        accountForm.setEmail(SEC_EMAIL);
         accountForm.setUsername("test2 Username");
         Account saveAccount = saveAccount(accountForm);
         ArticleForm articleForm = createArticleForm(1);
@@ -195,10 +195,10 @@ public class AccountControllerTestWithNotification extends AccountMethods{
 
     @Test
     @DisplayName("Account의 notfication을 삭제 성공 - 204")
-    @WithAccount("test@testT.com")
+    @WithAccount(EMAIL)
     @Transactional
     public void deleteAccountNotification_success() throws Exception {
-        Account account = this.accountRepository.findByEmail("test@testT.com").orElseThrow();
+        Account account = this.accountRepository.findByEmail(EMAIL).orElseThrow();
         ArticleForm articleForm = createArticleForm(1);
         Article article = saveArticle(account, articleForm);
 
@@ -272,10 +272,10 @@ public class AccountControllerTestWithNotification extends AccountMethods{
 
     @Test
     @DisplayName("Account의 notification를 삭제 실패(not found AccountId) - 404")
-    @WithAccount("test@testT.com")
+    @WithAccount(EMAIL)
     @Transactional
     public void deleteAccountNotification_fail_unMatch() throws Exception {
-        Account account = this.accountRepository.findByEmail("test@testT.com").orElseThrow();
+        Account account = this.accountRepository.findByEmail(EMAIL).orElseThrow();
         ArticleForm articleForm = createArticleForm(1);
         Article article = saveArticle(account, articleForm);
 
@@ -305,12 +305,12 @@ public class AccountControllerTestWithNotification extends AccountMethods{
 
     @Test
     @DisplayName("Account의 notification를 삭제 실패(unMatch Principal and Account) - 400")
-    @WithAccount("test@testT.com")
+    @WithAccount(EMAIL)
     @Transactional
     public void deleteAccountNotification_fail_accountMiss() throws Exception {
-        Account account = this.accountRepository.findByEmail("test@testT.com").orElseThrow();
+        Account account = this.accountRepository.findByEmail(EMAIL).orElseThrow();
         AccountForm accountForm = createAccountForm();
-        accountForm.setEmail("test2@testT.com");
+        accountForm.setEmail(SEC_EMAIL);
         accountForm.setUsername("test2 Username");
         Account newAccount = saveAccount(accountForm);
 
@@ -343,10 +343,10 @@ public class AccountControllerTestWithNotification extends AccountMethods{
 
     @Test
     @DisplayName("Account의 notification를 삭제 실패 (JWT error) - 3xx")
-    @WithAccount("test@testT.com")
+    @WithAccount(EMAIL)
     @Transactional
     public void deleteAccountNotification_fail_JWT() throws Exception {
-        Account account = this.accountRepository.findByEmail("test@testT.com").orElseThrow();
+        Account account = this.accountRepository.findByEmail(EMAIL).orElseThrow();
 
         ArticleForm articleForm = createArticleForm(1);
         Article article = saveArticle(account, articleForm);

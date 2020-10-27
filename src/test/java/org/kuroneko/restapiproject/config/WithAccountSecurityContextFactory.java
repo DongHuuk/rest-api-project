@@ -1,5 +1,6 @@
 package org.kuroneko.restapiproject.config;
 
+import org.kuroneko.restapiproject.account.domain.UserAuthority;
 import org.kuroneko.restapiproject.token.AccountDetailsService;
 import org.kuroneko.restapiproject.account.AccountRepository;
 import org.kuroneko.restapiproject.account.AccountService;
@@ -18,6 +19,7 @@ import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.test.context.support.WithSecurityContextFactory;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.security.Security;
 import java.util.Collections;
@@ -30,6 +32,7 @@ public class WithAccountSecurityContextFactory implements WithSecurityContextFac
     private AccountVORepository accountVORepository;
 
     @Override
+    @Transactional
     public SecurityContext createSecurityContext(WithAccount withAccount) {
         String withAccountEmail = withAccount.value();
 
@@ -38,8 +41,9 @@ public class WithAccountSecurityContextFactory implements WithSecurityContextFac
         account.setPassword("1234567890");
         account.setUsername("테스트1");
         accountService.createNewAccount(account);
-
+        account.setAuthority(UserAuthority.ROOT);
         AccountVO accountVO = this.accountVORepository.findByEmail(withAccountEmail).orElseThrow();
+        accountVO.setAuthority(UserAuthority.ROOT);
 //        User principal = (User) accountDetailsService.loadUserByUsername(accountVO.getEmail());
         UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken(accountVO, accountVO.getPassword(),
                 Collections.singleton(new SimpleGrantedAuthority(accountVO.getAuthority().toString())));

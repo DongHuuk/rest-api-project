@@ -68,10 +68,10 @@ public class AccountControllerTestWithArticles extends AccountMethods{
 
     @Test
     @DisplayName("Account의 articles를 조회 성공 - 200")
-    @WithAccount("test@testT.com")
+    @WithAccount(EMAIL)
     @Transactional
     public void findAccountsArticles() throws Exception{
-        Account account = this.accountRepository.findByEmail("test@testT.com").orElseThrow();
+        Account account = this.accountRepository.findByEmail(EMAIL).orElseThrow();
         String token = createToken(account);
 
         for(int i = 0; i<50; i++){
@@ -122,10 +122,10 @@ public class AccountControllerTestWithArticles extends AccountMethods{
 
     @Test
     @DisplayName("Account의 articles를 조회 실패 (JWT Error) - 3xx")
-    @WithAccount("test@testT.com")
+    @WithAccount(EMAIL)
     @Transactional
     public void findAccountsArticles_JWT() throws Exception {
-        Account account = this.accountRepository.findByEmail("test@testT.com").orElseThrow();
+        Account account = this.accountRepository.findByEmail(EMAIL).orElseThrow();
 
         this.mockMvc.perform(get("/accounts/{id}/articles", account.getId()))
                 .andDo(print())
@@ -150,9 +150,9 @@ public class AccountControllerTestWithArticles extends AccountMethods{
     @Test
     @DisplayName("Account의 articles를 조회 실패 (Not Found account Id) - 404")
     @Transactional
-    @WithAccount("test@testT.com")
+    @WithAccount(EMAIL)
     public void findAccountsArticles_AccountId() throws Exception {
-        Account account = this.accountRepository.findByEmail("test@testT.com").orElseThrow();
+        Account account = this.accountRepository.findByEmail(EMAIL).orElseThrow();
         String token = createToken(account);
 
         this.mockMvc.perform(get("/accounts/12345/articles")
@@ -164,12 +164,12 @@ public class AccountControllerTestWithArticles extends AccountMethods{
     @Test
     @DisplayName("Account의 articles를 조회 실패 (unmatch Principal and Account) - 400")
     @Transactional
-    @WithAccount("test@testT.com")
+    @WithAccount(EMAIL)
     public void findAccountsArticles_notMatch() throws Exception {
-        Account account = this.accountRepository.findByEmail("test@testT.com").orElseThrow();
+        Account account = this.accountRepository.findByEmail(EMAIL).orElseThrow();
 
         AccountForm accountForm = createAccountForm();
-        accountForm.setEmail("test2@testT.com");
+        accountForm.setEmail(SEC_EMAIL);
         accountForm.setUsername("test2 username");
         Account saveAccount = saveAccount(accountForm);
 
@@ -183,10 +183,10 @@ public class AccountControllerTestWithArticles extends AccountMethods{
 
     @Test
     @DisplayName("Account의 articles를 삭제 성공 - 204")
-    @WithAccount("test@testT.com")
+    @WithAccount(EMAIL)
     @Transactional
     public void deleteAccountArticles_success() throws Exception {
-        Account account = this.accountRepository.findByEmail("test@testT.com").orElseThrow();
+        Account account = this.accountRepository.findByEmail(EMAIL).orElseThrow();
 
         for(int i = 0; i<15; i++){
             ArticleForm articleForm = createArticleForm(1);
@@ -226,10 +226,10 @@ public class AccountControllerTestWithArticles extends AccountMethods{
 
     @Test
     @DisplayName("Account의 articles를 삭제 실패 (JWT error) - 3xx")
-    @WithAccount("test@testT.com")
+    @WithAccount(EMAIL)
     @Transactional
     public void deleteAccountArticles_fail_JWT() throws Exception {
-        Account account = this.accountRepository.findByEmail("test@testT.com").orElseThrow();
+        Account account = this.accountRepository.findByEmail(EMAIL).orElseThrow();
 
         for(int i = 0; i<15; i++){
             ArticleForm articleForm = createArticleForm(1);
@@ -290,10 +290,10 @@ public class AccountControllerTestWithArticles extends AccountMethods{
 
     @Test
     @DisplayName("Account의 articles를 삭제 실패 (Not Found Account Id) - 404")
-    @WithAccount("test@testT.com")
+    @WithAccount(EMAIL)
     @Transactional
     public void deleteAccountArticles_fail_AccountId() throws Exception {
-        Account account = accountRepository.findByEmail("test@testT.com").orElseThrow();
+        Account account = accountRepository.findByEmail(EMAIL).orElseThrow();
 
         for(int i = 0; i<15; i++){
             ArticleForm articleForm = createArticleForm(1);
@@ -323,12 +323,12 @@ public class AccountControllerTestWithArticles extends AccountMethods{
 
     @Test
     @DisplayName("Account의 articles를 삭제 실패 (unmatch Principal and Account) - 400")
-    @WithAccount("test@testT.com")
+    @WithAccount(EMAIL)
     @Transactional
     public void deleteAccountArticles_fail_unMatch() throws Exception {
-        Account account = this.accountRepository.findByEmail("test@testT.com").orElseThrow();
+        Account account = this.accountRepository.findByEmail(EMAIL).orElseThrow();
         AccountForm accountForm = createAccountForm();
-        accountForm.setEmail("test2@testT.com");
+        accountForm.setEmail(SEC_EMAIL);
         accountForm.setUsername("test username by 2");
         Account newAccount = saveAccount(accountForm);
 
@@ -361,10 +361,10 @@ public class AccountControllerTestWithArticles extends AccountMethods{
 
     @Test
     @DisplayName("Account의 articles를 삭제 실패 (Bad Request Numbers) - 400")
-    @WithAccount("test@testT.com")
+    @WithAccount(EMAIL)
     @Transactional
     public void deleteAccountArticles_fail_number() throws Exception {
-        Account account = accountRepository.findByEmail("test@testT.com").orElseThrow();
+        Account account = accountRepository.findByEmail(EMAIL).orElseThrow();
 
         for(int i = 0; i<15; i++){
             ArticleForm articleForm = createArticleForm(1);

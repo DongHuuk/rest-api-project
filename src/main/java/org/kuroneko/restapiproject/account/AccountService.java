@@ -59,6 +59,7 @@ public class AccountService {
         account.setPassword(passwordEncoder.encode(account.getPassword()));
         AccountVO accountVO = new AccountVO(account.getEmail(), account.getPassword(), account.getAuthority());
         accountVO.setCreatedAt(LocalDateTime.now());
+        accountVO.setAuthority(UserAuthority.USER);
         this.accountVORepository.save(accountVO);
 
         return accountRepository.save(account);

@@ -10,8 +10,8 @@ import org.kuroneko.restapiproject.account.domain.AccountForm;
 import org.kuroneko.restapiproject.article.ArticleRepository;
 import org.kuroneko.restapiproject.article.domain.Article;
 import org.kuroneko.restapiproject.article.domain.ArticleForm;
-import org.kuroneko.restapiproject.comments.CommentsForm;
 import org.kuroneko.restapiproject.comments.CommentsRepository;
+import org.kuroneko.restapiproject.comments.domain.CommentForm;
 import org.kuroneko.restapiproject.comments.domain.Comments;
 import org.kuroneko.restapiproject.config.WithAccount;
 import org.kuroneko.restapiproject.exception.IdNotFoundException;
@@ -39,7 +39,6 @@ import static org.springframework.restdocs.hypermedia.HypermediaDocumentation.li
 import static org.springframework.restdocs.hypermedia.HypermediaDocumentation.links;
 import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.document;
 import static org.springframework.restdocs.payload.PayloadDocumentation.*;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
@@ -72,10 +71,10 @@ public class AccountControllerTestWithComments extends AccountMethods{
 
     @Test
     @DisplayName("Account의 Comments를 조회 성공 - 200")
-    @WithAccount("test@testT.com")
+    @WithAccount(EMAIL)
     @Transactional
     public void findAccountsComments() throws Exception{
-        Account account = this.accountRepository.findByEmail("test@testT.com").orElseThrow();
+        Account account = this.accountRepository.findByEmail(EMAIL).orElseThrow();
 
         ArticleForm articleForm_1 = createArticleForm(1);
         Article article_1 = saveArticle(account, articleForm_1);
@@ -85,16 +84,16 @@ public class AccountControllerTestWithComments extends AccountMethods{
         Article article_3 = saveArticle(account, articleForm_3);
 
         for(int i=0; i<22; i++){
-            CommentsForm commentsForm = createCommentsForm("Test Comment Number." + i);
-            saveComments(commentsForm, article_1, account, i);
+            CommentForm CommentForm = createCommentForm("Test Comment Number." + i);
+            saveComments(CommentForm, article_1, account, i);
         }
         for(int i=0; i<15; i++){
-            CommentsForm commentsForm = createCommentsForm("Test Comment Number." + i);
-            saveComments(commentsForm, article_2, account, i);
+            CommentForm CommentForm = createCommentForm("Test Comment Number." + i);
+            saveComments(CommentForm, article_2, account, i);
         }
         for(int i=0; i<15; i++){
-            CommentsForm commentsForm = createCommentsForm("Test Comment Number." + i);
-            saveComments(commentsForm, article_3, account, i);
+            CommentForm CommentForm = createCommentForm("Test Comment Number." + i);
+            saveComments(CommentForm, article_3, account, i);
         }
 
         String token = createToken(account);
@@ -139,10 +138,10 @@ public class AccountControllerTestWithComments extends AccountMethods{
 
     @Test
     @DisplayName("Account의 comments를 조회 실패 (JWT error) - 304")
-    @WithAccount("test@testT.com")
+    @WithAccount(EMAIL)
     @Transactional
     public void findAccountsComments_fail_JWT() throws Exception {
-        Account account = this.accountRepository.findByEmail("test@testT.com").orElseThrow();
+        Account account = this.accountRepository.findByEmail(EMAIL).orElseThrow();
 
         this.mockMvc.perform(get("/accounts/{id}/comments", account.getId()))
                 .andDo(print())
@@ -167,9 +166,9 @@ public class AccountControllerTestWithComments extends AccountMethods{
     @Test
     @DisplayName("Account의 comments를 조회 실패 (Not Found Account Id) - 404")
     @Transactional
-    @WithAccount("test@testT.com")
+    @WithAccount(EMAIL)
     public void findAccountsComments_fail_AccountId() throws Exception {
-        Account account = this.accountRepository.findByEmail("test@testT.com").orElseThrow();
+        Account account = this.accountRepository.findByEmail(EMAIL).orElseThrow();
         String token = createToken(account);
 
         this.mockMvc.perform(get("/accounts/12345/comments")
@@ -181,12 +180,12 @@ public class AccountControllerTestWithComments extends AccountMethods{
     @Test
     @DisplayName("Account의 comments를 조회 실패(principal과 조회 하려는 Account의 Id가 다를 경우) - 400")
     @Transactional
-    @WithAccount("test@testT.com")
+    @WithAccount(EMAIL)
     public void findAccountsComments_fail_unMatch() throws Exception {
-        Account account = this.accountRepository.findByEmail("test@testT.com").orElseThrow();
+        Account account = this.accountRepository.findByEmail(EMAIL).orElseThrow();
 
         AccountForm accountForm = createAccountForm();
-        accountForm.setEmail("test2@testT.com");
+        accountForm.setEmail(SEC_EMAIL);
         accountForm.setUsername("test Username");
         Account saveAccount = saveAccount(accountForm);
         ArticleForm articleForm = createArticleForm(1);
@@ -202,16 +201,16 @@ public class AccountControllerTestWithComments extends AccountMethods{
 
     @Test
     @DisplayName("Account의 comments를 삭제 성공")
-    @WithAccount("test@testT.com")
+    @WithAccount(EMAIL)
     @Transactional
     public void deleteAccountComments_success() throws Exception {
-        Account account = this.accountRepository.findByEmail("test@testT.com").orElseThrow();
+        Account account = this.accountRepository.findByEmail(EMAIL).orElseThrow();
         ArticleForm articleForm = createArticleForm(1);
         Article article = saveArticle(account, articleForm);
 
         for(int i=0; i<17; i++){
-            CommentsForm commentsForm = createCommentsForm("Test Comment Number." + i);
-            saveComments(commentsForm, article, account, i);
+            CommentForm CommentForm = createCommentForm("Test Comment Number." + i);
+            saveComments(CommentForm, article, account, i);
         }
 
         String token = createToken(account);
@@ -246,17 +245,17 @@ public class AccountControllerTestWithComments extends AccountMethods{
 
     @Test
     @DisplayName("Account의 comments를 삭제 실패(JWT error) - 3xx")
-    @WithAccount("test@testT.com")
+    @WithAccount(EMAIL)
     @Transactional
     public void deleteAccountComments_fail_JWT() throws Exception {
-        Account account = this.accountRepository.findByEmail("test@testT.com").orElseThrow();
+        Account account = this.accountRepository.findByEmail(EMAIL).orElseThrow();
 
         ArticleForm articleForm = createArticleForm(1);
         Article article = saveArticle(account, articleForm);
 
         for(int i=0; i<5; i++){
-            CommentsForm commentsForm = createCommentsForm("Test Comment Number." + i);
-            saveComments(commentsForm, article, account, i);
+            CommentForm CommentForm = createCommentForm("Test Comment Number." + i);
+            saveComments(CommentForm, article, account, i);
         }
 
         List<Comments> all = commentsRepository.findAll();
@@ -288,8 +287,8 @@ public class AccountControllerTestWithComments extends AccountMethods{
         Article article = saveArticle(account, articleForm);
 
         for(int i=0; i<5; i++){
-            CommentsForm commentsForm = createCommentsForm("Test Comment Number." + i);
-            saveComments(commentsForm, article, account, i);
+            CommentForm CommentForm = createCommentForm("Test Comment Number." + i);
+            saveComments(CommentForm, article, account, i);
         }
 
         String token = createToken(account);
@@ -314,17 +313,17 @@ public class AccountControllerTestWithComments extends AccountMethods{
 
     @Test
     @DisplayName("Account의 comments를 삭제 실패 (not found Account Id) - 404")
-    @WithAccount("test@testT.com")
+    @WithAccount(EMAIL)
     @Transactional
     public void deleteAccountComments_fail_AccountId() throws Exception {
-        Account account = accountRepository.findByEmail("test@testT.com").orElseThrow();
+        Account account = accountRepository.findByEmail(EMAIL).orElseThrow();
 
         ArticleForm articleForm = createArticleForm(1);
         Article article = saveArticle(account, articleForm);
 
         for(int i=0; i<5; i++){
-            CommentsForm commentsForm = createCommentsForm("Test Comment Number." + i);
-            saveComments(commentsForm, article, account, i);
+            CommentForm CommentForm = createCommentForm("Test Comment Number." + i);
+            saveComments(CommentForm, article, account, i);
         }
 
         String token = createToken(account);
@@ -349,12 +348,12 @@ public class AccountControllerTestWithComments extends AccountMethods{
 
     @Test
     @DisplayName("Account의 comments를 삭제 실패(unMatch Account and Principal) - 400")
-    @WithAccount("test@testT.com")
+    @WithAccount(EMAIL)
     @Transactional
     public void deleteAccountComments_fail_unMatchAccountAndPrincipal() throws Exception {
-        Account account = this.accountRepository.findByEmail("test@testT.com").orElseThrow();
+        Account account = this.accountRepository.findByEmail(EMAIL).orElseThrow();
         AccountForm accountForm = createAccountForm();
-        accountForm.setEmail("test2@testT.com");
+        accountForm.setEmail(SEC_EMAIL);
         accountForm.setUsername("test Username");
         Account newAccount = saveAccount(accountForm);
 
@@ -362,8 +361,8 @@ public class AccountControllerTestWithComments extends AccountMethods{
         Article article = saveArticle(newAccount, articleForm);
 
         for(int i=0; i<15; i++){
-            CommentsForm commentsForm = createCommentsForm("Test Comment Number." + i);
-            saveComments(commentsForm, article, newAccount, i);
+            CommentForm CommentForm = createCommentForm("Test Comment Number." + i);
+            saveComments(CommentForm, article, newAccount, i);
         }
         String token = createToken(account);
         List<Comments> all = commentsRepository.findByAccountId(newAccount.getId());
@@ -387,17 +386,17 @@ public class AccountControllerTestWithComments extends AccountMethods{
 
     @Test
     @DisplayName("Account의 comments를 삭제 실패(errorResource check) - 400")
-    @WithAccount("test@testT.com")
+    @WithAccount(EMAIL)
     @Transactional
     public void deleteAccountComments_fail_errorResource() throws Exception {
-        Account account = this.accountRepository.findByEmail("test@testT.com").orElseThrow();
+        Account account = this.accountRepository.findByEmail(EMAIL).orElseThrow();
 
         ArticleForm articleForm = createArticleForm(1);
         Article article = saveArticle(account, articleForm);
 
         for(int i=0; i<15; i++){
-            CommentsForm commentsForm = createCommentsForm("Test Comment Number." + i);
-            saveComments(commentsForm, article, account, i);
+            CommentForm CommentForm = createCommentForm("Test Comment Number." + i);
+            saveComments(CommentForm, article, account, i);
         }
         String token = createToken(account);
         String str = "6, 122313, 6237";

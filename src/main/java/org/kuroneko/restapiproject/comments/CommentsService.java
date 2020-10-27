@@ -18,7 +18,7 @@ public class CommentsService {
     @Autowired private AccountRepository accountRepository;
     @Autowired private ArticleRepository articleRepository;
 
-    public void createComments(CommentForm commentForm, Account secAccount, Article article) {
+    public Comments createComments(CommentForm commentForm, Account secAccount, Article article) {
         Account account = this.accountRepository.findById(secAccount.getId()).orElseThrow();
         long count = this.commentsRepository.count();
         Comments comments = new Comments();
@@ -32,9 +32,10 @@ public class CommentsService {
         comments.setGroupOrd(0);
         comments.setArticle(article);
         comments.setAccount(account);
-        this.commentsRepository.save(comments);
+        Comments save = this.commentsRepository.save(comments);
         article.getComments().add(comments);
         account.getComments().add(comments);
+        return save;
     }
 
     public void updateComments(CommentForm commentForm, Comments comments) {

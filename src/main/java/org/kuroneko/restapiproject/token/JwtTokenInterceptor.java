@@ -16,15 +16,31 @@ public class JwtTokenInterceptor implements HandlerInterceptor {
         String header = request.getHeader(AuthConstants.AUTH_HEADER);
         String method = request.getMethod();
         String path = request.getPathInfo();
-        if (method.equalsIgnoreCase("post") && path.equals("/accounts")){
-            return true;
-        }
+        String[] split = path.split("/");
 
         if (header != null) {
 //            String token = TokenUtils.getTokenFromHeader(header);
             if (TokenUtils.isValidToken(header)) {
                 return true;
             }
+        }
+
+        if (method.equalsIgnoreCase("get") && path.contains("/community/")
+                && split.length == 3) {
+            try {
+                int i = Integer.parseInt(split[2]);
+                return true;
+            } catch (NumberFormatException e) {
+                return false;
+            }
+        } else if (method.equalsIgnoreCase("get") && path.equals("/community")) {
+            return true;
+        } else if(method.equalsIgnoreCase("get") && path.contains("/community") && path.contains("/article")
+            && split.length == 5){
+            return true;
+        }
+        else if (method.equalsIgnoreCase("post") && path.equals("/accounts")) {
+            return true;
         }
 
         response.sendRedirect("/error/unauthorized");
