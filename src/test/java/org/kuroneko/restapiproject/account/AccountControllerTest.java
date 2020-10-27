@@ -37,9 +37,7 @@ import static org.springframework.restdocs.headers.HeaderDocumentation.*;
 import static org.springframework.restdocs.hypermedia.HypermediaDocumentation.linkWithRel;
 import static org.springframework.restdocs.hypermedia.HypermediaDocumentation.links;
 import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.document;
-import static org.springframework.restdocs.payload.PayloadDocumentation.fieldWithPath;
-import static org.springframework.restdocs.payload.PayloadDocumentation.requestFields;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.restdocs.payload.PayloadDocumentation.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -214,6 +212,19 @@ class AccountControllerTest extends AccountMethods{
                         ),
                         responseHeaders(
                                 headerWithName(HttpHeaders.CONTENT_TYPE).description("이 API는 hal+json을 지원한다.")
+                        ),
+                        responseFields(
+                                fieldWithPath("id").description("계정을 구분할 수 있는 ID 값"),
+                                fieldWithPath("username").description("사이트의 닉네임으로 사용될 값"),
+                                fieldWithPath("email").description("로그인 시 사용되는 값"),
+                                fieldWithPath("createTime").description("생성된 일자"),
+                                fieldWithPath("updateTime").description("계정을 수정한 일자"),
+                                fieldWithPath("authority").description("계정의 권한"),
+                                fieldWithPath("article").description("계정이 작성한 게시글"),
+                                fieldWithPath("comments").description("계정이 작성한 댓글"),
+                                fieldWithPath("communities").description("계정이 생성한 커뮤니티 게시판"),
+                                fieldWithPath("notification").description("계정의 알림"),
+                                fieldWithPath("isEnable").description("계정의 JWT의 유효 여부")
                         )
                     ));
     }
@@ -277,6 +288,13 @@ class AccountControllerTest extends AccountMethods{
                 .andDo(print())
                 .andExpect(status().isCreated())
                 .andDo(document("update-Account",
+                        links(
+                                linkWithRel("Account Profile").description("자신의 개인 설정 페이지"),
+                                linkWithRel("get Articles").description("자신이 작성한 게시글 열람 페이지"),
+                                linkWithRel("get Comments").description("자신이 작성한 댓글 열람 페이지"),
+                                linkWithRel("get Notification").description("자신의 알림들 페이지"),
+                                linkWithRel("DOCS").description("REST API DOCS")
+                        ),
                         requestHeaders(
                                 headerWithName(HttpHeaders.CONTENT_TYPE).description("이 API는 json 타입의 요청을 받는다"),
                                 headerWithName(HttpHeaders.ACCEPT).description("이 API의 응답은 hal+json타입을 지원한다."),
@@ -433,7 +451,7 @@ class AccountControllerTest extends AccountMethods{
                                 fieldWithPath("checkingPassword").description("생성할 계정의 비밀번호를 확인 할 비밀번호.")
                         ),
                         responseHeaders(
-                                headerWithName(HttpHeaders.LOCATION).description("index page URL")
+                                headerWithName(HttpHeaders.LOCATION).description("home page URL")
                         )
                 ));
 
@@ -538,6 +556,7 @@ class AccountControllerTest extends AccountMethods{
     }
 
     @Test
+    @DisplayName("login token(JWT) 생성 여부 확인")
     public void tokenTest() throws Exception {
         AccountForm accountForm = createAccountForm();
         saveAccount(accountForm);
