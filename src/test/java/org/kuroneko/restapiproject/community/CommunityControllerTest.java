@@ -393,6 +393,7 @@ class CommunityControllerTest extends CommunityMethods {
                 .andExpect(status().isBadRequest());
     }
 
+    //TODO 여기부터
     @Test
     @DisplayName("특정 커뮤니티 수정 - 200")
     @WithAccount(EMAIL)
