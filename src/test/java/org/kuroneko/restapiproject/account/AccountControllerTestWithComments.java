@@ -113,6 +113,9 @@ public class AccountControllerTestWithComments extends AccountMethods{
                                 linkWithRel("get Notification").description("Account's get Notification"),
                                 linkWithRel("DOCS").description("REST API DOCS")
                         ),
+                        requestHeaders(
+                                headerWithName(AuthConstants.AUTH_HEADER).description("JWT")
+                        ),
                         responseHeaders(
                                 headerWithName(HttpHeaders.CONTENT_TYPE).description("이 API에서는 JSON-HAL 지원한다.")
                         ),

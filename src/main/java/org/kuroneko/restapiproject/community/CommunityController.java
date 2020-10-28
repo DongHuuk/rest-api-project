@@ -91,11 +91,10 @@ public class CommunityController extends StatusMethod {
 
         if (this.checkErrors(errors)) return this.returnBadRequestWithErrors(errors);
 
-        this.communityService.createCommunity(communityForm, byUsername.get());
+        Community community = this.communityService.createCommunity(communityForm, byUsername.get());
         CommunityResource resource = new CommunityResource();
-        resource.add(linkTo(CommunityController.class).slash("CommunityId").withRel("Community Page"));
-        resource.add(linkTo(CommunityController.class).withRel("Create Community"));
-
+        resource.add(linkTo(CommunityController.class).slash("/" + community.getId()).withRel("move Community"));
+        //TODO Wrtie DOCS Links
         return new ResponseEntity(resource, HttpStatus.CREATED);
     }
 

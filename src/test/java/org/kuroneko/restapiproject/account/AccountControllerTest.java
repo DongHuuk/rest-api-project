@@ -226,7 +226,7 @@ class AccountControllerTest extends AccountMethods{
                                 fieldWithPath("notification").description("계정의 알림"),
                                 fieldWithPath("isEnable").description("계정의 JWT의 유효 여부")
                         )
-                    ));
+                ));
     }
 
     @Test
