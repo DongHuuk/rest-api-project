@@ -213,7 +213,7 @@ class AccountControllerTest extends AccountMethods{
                         responseHeaders(
                                 headerWithName(HttpHeaders.CONTENT_TYPE).description("이 API는 hal+json을 지원한다.")
                         ),
-                        responseFields(
+                        relaxedResponseFields(
                                 fieldWithPath("id").description("계정을 구분할 수 있는 ID 값"),
                                 fieldWithPath("username").description("사이트의 닉네임으로 사용될 값"),
                                 fieldWithPath("email").description("로그인 시 사용되는 값"),
@@ -226,7 +226,7 @@ class AccountControllerTest extends AccountMethods{
                                 fieldWithPath("notification").description("계정의 알림"),
                                 fieldWithPath("isEnable").description("계정의 JWT의 유효 여부")
                         )
-                    ));
+                ));
     }
 
     @Test
