@@ -1,6 +1,7 @@
 package org.kuroneko.restapiproject.community;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.net.HttpHeaders;
 import lombok.With;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.AfterEach;
@@ -42,6 +43,11 @@ import java.util.Optional;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.springframework.restdocs.headers.HeaderDocumentation.headerWithName;
+import static org.springframework.restdocs.headers.HeaderDocumentation.requestHeaders;
+import static org.springframework.restdocs.hypermedia.HypermediaDocumentation.linkWithRel;
+import static org.springframework.restdocs.hypermedia.HypermediaDocumentation.links;
+import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.document;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
@@ -114,7 +120,20 @@ public class CommunityControllerTestWithArticle extends CommunityMethods {
                 .accept(MediaTypes.HAL_JSON))
                 .andDo(print())
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("_links").exists());
+                .andExpect(jsonPath("_links").exists())
+                .andDo(document("create-Community-Article",
+                    links(
+                            linkWithRel("Account Profile").description("Account's Profile"),
+                            linkWithRel("get Community").description("Account's find Community"),
+                            linkWithRel("get Article By Community").description("Account's find Community's Article")
+//                            linkWithRel("DOCS").description("REST API DOCS")
+                    ),
+                    requestHeaders(
+                            headerWithName(AuthConstants.AUTH_HEADER).description("JWT"),
+                            headerWithName(org.springframework.http.HttpHeaders.CONTENT_TYPE).description("이 API에서는 JSON을 지원한다."),
+                            headerWithName(org.springframework.http.HttpHeaders.ACCEPT).description("이 API에서는 HAL을 지원한다.")
+                    )
+                ));
 
         List<Article> articleList = this.articleRepository.findAll();
         assertFalse(articleList.isEmpty());

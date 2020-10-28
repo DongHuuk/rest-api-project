@@ -42,6 +42,11 @@ import java.util.Map;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.springframework.restdocs.headers.HeaderDocumentation.headerWithName;
+import static org.springframework.restdocs.headers.HeaderDocumentation.requestHeaders;
+import static org.springframework.restdocs.hypermedia.HypermediaDocumentation.linkWithRel;
+import static org.springframework.restdocs.hypermedia.HypermediaDocumentation.links;
+import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.document;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
@@ -94,10 +99,19 @@ class CommunityControllerTest extends CommunityMethods {
                 .header(AuthConstants.AUTH_HEADER, token)
                 .contentType(MediaType.APPLICATION_JSON)
                 .accept(MediaTypes.HAL_JSON)
-                .content(objectMapper.writeValueAsString(communityForm))
-                .with(csrf()))
+                .content(objectMapper.writeValueAsString(communityForm)))
                 .andDo(print())
-                .andExpect(status().isCreated());
+                .andExpect(status().isCreated())
+                .andDo(document("create-Community",
+                        links(
+                                linkWithRel("move Community").description("move Community")
+                        ),
+                        requestHeaders(
+                                headerWithName(HttpHeaders.CONTENT_TYPE).description("이 API에서는 JSON을 지원한다."),
+                                headerWithName(HttpHeaders.ACCEPT).description("이 API에서는 HAL을 지원한다."),
+                                headerWithName(AuthConstants.AUTH_HEADER).description("JWT")
+                        )
+                ));
 
         Community community = this.communityRepository.findByTitle("테스트 커뮤니티");
         assertNotNull(community);
