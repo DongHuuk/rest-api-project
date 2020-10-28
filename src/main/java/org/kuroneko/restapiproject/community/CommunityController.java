@@ -94,7 +94,7 @@ public class CommunityController extends StatusMethod {
         Community community = this.communityService.createCommunity(communityForm, byUsername.get());
         CommunityResource resource = new CommunityResource();
         resource.add(linkTo(CommunityController.class).slash("/" + community.getId()).withRel("move Community"));
-
+        //TODO Wrtie DOCS Links
         return new ResponseEntity(resource, HttpStatus.CREATED);
     }
 
