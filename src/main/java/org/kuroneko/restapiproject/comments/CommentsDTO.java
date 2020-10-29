@@ -19,6 +19,8 @@ public class CommentsDTO extends RepresentationModel<ArticleDTO> {
 
     private int disagree;
 
+    private int report;
+
     private int originNo; //checking sub comments
 
     private int groupOrd; // 댓글 - 0 , 댓답글 - 1

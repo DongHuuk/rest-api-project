@@ -1,5 +1,6 @@
 package org.kuroneko.restapiproject.account;
 
+import com.google.common.annotations.VisibleForTesting;
 import javassist.NotFoundException;
 import lombok.extern.slf4j.Slf4j;
 import org.kuroneko.restapiproject.account.domain.Account;
@@ -88,7 +89,6 @@ public class AccountController extends StatusMethod{
 
     private AccountResource createAccountResource(Account account, Long id){
         AccountResource accountResource = new AccountResource(account);
-        accountResource.add(this.getAccountProfile(id));
         accountResource.add(this.getAccountArticles(id));
         accountResource.add(this.getAccountComments(id));
         accountResource.add(this.getAccountNotification(id));
@@ -212,7 +212,6 @@ public class AccountController extends StatusMethod{
 
         Account account = accountWithArticleById.get();
         if (!this.checkEmail(account.getEmail(), accountVO.getEmail())) return this.returnBadRequest();
-
         try {
             accountService.findArticlesAndDelete(account, checked);
         } catch (NotFoundException e) {
@@ -322,4 +321,5 @@ public class AccountController extends StatusMethod{
 
         return new ResponseEntity(httpHeaders, HttpStatus.NO_CONTENT);
     }
+
 }

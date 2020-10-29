@@ -1,8 +1,6 @@
 package org.kuroneko.restapiproject.community;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.net.HttpHeaders;
-import lombok.With;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
@@ -32,23 +30,21 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.hateoas.MediaTypes;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.springframework.restdocs.headers.HeaderDocumentation.headerWithName;
-import static org.springframework.restdocs.headers.HeaderDocumentation.requestHeaders;
+import static org.springframework.restdocs.headers.HeaderDocumentation.*;
 import static org.springframework.restdocs.hypermedia.HypermediaDocumentation.linkWithRel;
 import static org.springframework.restdocs.hypermedia.HypermediaDocumentation.links;
 import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.document;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.restdocs.payload.PayloadDocumentation.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -99,6 +95,14 @@ public class CommunityControllerTestWithArticle extends CommunityMethods {
         accountForm_3.setEmail("test@test3.com");
         saveAccount(accountForm_2);
         saveAccount(accountForm_3);
+    }
+
+    private Community createCommunityAndArticles(String email) {
+        Account account = this.accountRepository.findByEmail(email).orElseThrow();
+        CommunityForm communityForm = createCommunityForm(account.getUsername());
+        Community community = this.communityService.createCommunity(communityForm, account);
+        createArticleWithCommunity(community, account);
+        return community;
     }
 
     @Test
@@ -295,13 +299,33 @@ public class CommunityControllerTestWithArticle extends CommunityMethods {
                 community.getId(), articleList.get(5).getId()))
                 .andDo(print())
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("_links").exists());
+                .andExpect(jsonPath("_links").exists())
+                .andDo(document("get-Community-Article",
+                        links(
+                                linkWithRel("create Article In Community").description("Community's Article")
+                        ),
+                        relaxedResponseFields(
+                                fieldWithPath("number").description("게시글의 순번"),
+                                fieldWithPath("title").description("게시글의 제목"),
+                                fieldWithPath("description").description("게시글의 내용"),
+                                fieldWithPath("source").description("게시글에 첨부파일 등이 있다면 그에 대한 출처 정보"),
+                                fieldWithPath("division").description("게시글의 글 유형"),
+                                fieldWithPath("createTime").description("게시글이 생성된 시간"),
+                                fieldWithPath("updateTime").description("게시글이 수정된 시간"),
+                                fieldWithPath("comments").description("게시글의 댓글들"),
+                                fieldWithPath("accountId").description("게시글을 가지고 있는 유저의 Id"),
+                                fieldWithPath("userName").description("게시글을 가지고 있는 유저의 이름"),
+                                fieldWithPath("userEmail").description("게시글을 가지고 있는 유저의 이메일"),
+                                fieldWithPath("authority").description("게시글을 가지고 있는 유저의 접근권한")
+                        )
+                ));
     }
 
     @Test
     @DisplayName("커뮤니티 내 게시글 조회 - 200")
     @Transactional
     public void findArticleInCommunityWithAccount() throws Exception {
+        //TODO 로그인 여부에 따라 동작의 차이가 백엔드에서 작업이 이루어져야 할 경우 DOCS 생성
         AccountForm accountForm = createAccountForm();
         Account account = saveAccount(accountForm);
         Community community = createCommunityAndArticles(account.getEmail());
@@ -342,13 +366,7 @@ public class CommunityControllerTestWithArticle extends CommunityMethods {
                 .andExpect(status().isNotFound());
     }
 
-    private Community createCommunityAndArticles(String email) {
-        Account account = this.accountRepository.findByEmail(email).orElseThrow();
-        CommunityForm communityForm = createCommunityForm(account.getUsername());
-        Community community = this.communityService.createCommunity(communityForm, account);
-        createArticleWithCommunity(community, account);
-        return community;
-    }
+
 
     @Test
     @DisplayName("커뮤니티 내 게시글 조회 (unMatch Article's Community) - 400")
@@ -387,7 +405,15 @@ public class CommunityControllerTestWithArticle extends CommunityMethods {
                 community.getId(), article.getId())
                 .header(AuthConstants.AUTH_HEADER, token))
                 .andDo(print())
-                .andExpect(status().isNoContent());
+                .andExpect(status().isNoContent())
+                .andDo(document("delete-Community-Article",
+                        requestHeaders(
+                                headerWithName(AuthConstants.AUTH_HEADER).description("JWT")
+                        ),
+                        responseHeaders(
+                                headerWithName(HttpHeaders.LOCATION).description("Redirect URL")
+                        )
+                ));
 
         Optional<Article> result = this.articleRepository.findById(article.getId());
         assertTrue(result.isEmpty());
@@ -508,7 +534,29 @@ public class CommunityControllerTestWithArticle extends CommunityMethods {
                 community.getId(), article.getId())
                 .header(AuthConstants.AUTH_HEADER, token))
                 .andDo(print())
-                .andExpect(status().isOk());
+                .andExpect(status().isOk())
+                .andDo(document("get-Community-Article-modify",
+                        links(
+                                linkWithRel("create Article In Community").description("Community's Article")
+                        ),
+                        requestHeaders(
+                                headerWithName(AuthConstants.AUTH_HEADER).description("JWT")
+                        ),
+                        relaxedResponseFields(
+                                fieldWithPath("number").description("게시글의 순번"),
+                                fieldWithPath("title").description("게시글의 제목"),
+                                fieldWithPath("description").description("게시글의 내용"),
+                                fieldWithPath("source").description("게시글에 첨부파일 등이 있다면 그에 대한 출처 정보"),
+                                fieldWithPath("division").description("게시글의 글 유형"),
+                                fieldWithPath("createTime").description("게시글이 생성된 시간"),
+                                fieldWithPath("updateTime").description("게시글이 수정된 시간"),
+                                fieldWithPath("comments").description("게시글의 댓글들"),
+                                fieldWithPath("accountId").description("게시글을 가지고 있는 유저의 Id"),
+                                fieldWithPath("userName").description("게시글을 가지고 있는 유저의 이름"),
+                                fieldWithPath("userEmail").description("게시글을 가지고 있는 유저의 이메일"),
+                                fieldWithPath("authority").description("게시글을 가지고 있는 유저의 접근권한")
+                        )
+                ));
     }
 
     @Test
@@ -641,10 +689,36 @@ public class CommunityControllerTestWithArticle extends CommunityMethods {
         this.mockMvc.perform(put("/community/{id}/article/{articleId}/modify",
                 community.getId(), article.getId())
                 .header(AuthConstants.AUTH_HEADER, token)
+                .accept(MediaTypes.HAL_JSON)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(this.objectMapper.writeValueAsString(articleForm)))
                 .andDo(print())
-                .andExpect(status().isOk());
+                .andExpect(status().isOk())
+                .andDo(document("update-Community-Article",
+                        links(
+                                linkWithRel("show Article In Community").description("show Community's Article"),
+                                linkWithRel("create Article In Community").description("create Community's Article")
+                        ),
+                        requestHeaders(
+                                headerWithName(org.springframework.http.HttpHeaders.CONTENT_TYPE).description("이 API에서는 JSON을 지원한다."),
+                                headerWithName(org.springframework.http.HttpHeaders.ACCEPT).description("이 API에서는 HAL을 지원한다."),
+                                headerWithName(AuthConstants.AUTH_HEADER).description("JWT")
+                        ),
+                        relaxedResponseFields(
+                                fieldWithPath("number").description("게시글의 순번"),
+                                fieldWithPath("title").description("게시글의 제목"),
+                                fieldWithPath("description").description("게시글의 내용"),
+                                fieldWithPath("source").description("게시글에 첨부파일 등이 있다면 그에 대한 출처 정보"),
+                                fieldWithPath("division").description("게시글의 글 유형"),
+                                fieldWithPath("createTime").description("게시글이 생성된 시간"),
+                                fieldWithPath("updateTime").description("게시글이 수정된 시간"),
+                                fieldWithPath("comments").description("게시글의 댓글들"),
+                                fieldWithPath("accountId").description("게시글을 가지고 있는 유저의 Id"),
+                                fieldWithPath("userName").description("게시글을 가지고 있는 유저의 이름"),
+                                fieldWithPath("userEmail").description("게시글을 가지고 있는 유저의 이메일"),
+                                fieldWithPath("authority").description("게시글을 가지고 있는 유저의 접근권한")
+                        )
+                ));
 
         Article newArticle = this.articleRepository.findById(article.getId()).orElseThrow();
         assertEquals(newArticle.getTitle(), articleForm.getTitle());
@@ -932,7 +1006,16 @@ public class CommunityControllerTestWithArticle extends CommunityMethods {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(this.objectMapper.writeValueAsString(commentForm)))
                 .andDo(print())
-                .andExpect(status().isCreated());
+                .andExpect(status().isCreated())
+                .andDo(document("create-Community-Comments",
+                        links(
+                                linkWithRel("get Community's Article").description("Article's Comments")
+                        ),
+                        requestHeaders(
+                                headerWithName(org.springframework.http.HttpHeaders.CONTENT_TYPE).description("이 API에서는 JSON을 지원한다."),
+                                headerWithName(AuthConstants.AUTH_HEADER).description("JWT")
+                        )
+                ));
 
         List<Comments> commentsList = this.commentsRepository.findAll();
         assertEquals(commentsList.size(), 1);
@@ -1116,7 +1199,16 @@ public class CommunityControllerTestWithArticle extends CommunityMethods {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(this.objectMapper.writeValueAsString(commentForm)))
                 .andDo(print())
-                .andExpect(status().isOk());
+                .andExpect(status().isOk())
+                .andDo(document("update-Community-Article-Comments",
+                        links(
+                                linkWithRel("get Community's Article").description("Article's Comments")
+                        ),
+                        requestHeaders(
+                                headerWithName(org.springframework.http.HttpHeaders.CONTENT_TYPE).description("이 API에서는 JSON을 지원한다."),
+                                headerWithName(AuthConstants.AUTH_HEADER).description("JWT")
+                        )
+                ));
 
         Comments newComments = this.commentsRepository.findById(comments.getId()).orElseThrow();
         assertEquals(newComments.getDescription(), description);
@@ -1338,7 +1430,15 @@ public class CommunityControllerTestWithArticle extends CommunityMethods {
                 community.getId(), article.getId(), id)
                 .header(AuthConstants.AUTH_HEADER, token))
                 .andDo(print())
-                .andExpect(status().isNoContent());
+                .andExpect(status().isNoContent())
+                .andDo(document("delete-Community-Article-Comments",
+                        requestHeaders(
+                                headerWithName(AuthConstants.AUTH_HEADER).description("JWT")
+                        ),
+                        responseHeaders(
+                                headerWithName(HttpHeaders.LOCATION).description("Redirect URL")
+                        )
+                ));
 
         Optional<Comments> commentsRepositoryById = this.commentsRepository.findById(id);
         assertTrue(commentsRepositoryById.isEmpty());
