@@ -105,6 +105,7 @@ public class AccountControllerTestWithArticles extends AccountMethods{
                                 fieldWithPath("createTime").description("게시글이 생성된 시간"),
                                 fieldWithPath("updateTime").description("게시글이 수정된 시간"),
                                 fieldWithPath("comments").description("게시글의 댓글들"),
+                                fieldWithPath("report").description("게시글의 신고 횟수"),
                                 fieldWithPath("accountId").description("게시글을 가지고 있는 유저의 Id"),
                                 fieldWithPath("userName").description("게시글을 가지고 있는 유저의 이름"),
                                 fieldWithPath("userEmail").description("게시글을 가지고 있는 유저의 이메일"),

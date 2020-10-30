@@ -1,6 +1,5 @@
 package org.kuroneko.restapiproject.account;
 
-import com.google.common.annotations.VisibleForTesting;
 import javassist.NotFoundException;
 import lombok.extern.slf4j.Slf4j;
 import org.kuroneko.restapiproject.account.domain.Account;
@@ -56,7 +55,7 @@ public class AccountController extends StatusMethod{
     private AccountRepository accountRepository;
 
     @Value("${host}")
-    private String host;
+    private static String HOST;
 
     @InitBinder("accountForm")
     public void checkingAccountForm(WebDataBinder webDataBinder){
@@ -83,8 +82,8 @@ public class AccountController extends StatusMethod{
         return linkTo(AccountController.class).slash(id + "/notification").withRel("get Notification").withType("JSON");
     }
 
-    private Link getDOSCURL(String url){
-        return Link.of("http://" + host + url).withRel("DOCS").withType("JSON");
+    public static Link getDOSCURL(String url){
+        return Link.of("http://" + HOST + url).withRel("DOCS").withType("JSON");
     }
 
     private AccountResource createAccountResource(Account account, Long id){

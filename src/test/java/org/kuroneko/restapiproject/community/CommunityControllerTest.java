@@ -105,12 +105,16 @@ class CommunityControllerTest extends CommunityMethods {
                 .andExpect(status().isCreated())
                 .andDo(document("create-Community",
                         links(
-                                linkWithRel("Community Site").description("move Community")
+                                linkWithRel("Community Site").description("생성한 커뮤니티로 이동"),
+                                linkWithRel("DOCS").description("REST API DOCS")
                         ),
                         requestHeaders(
                                 headerWithName(HttpHeaders.CONTENT_TYPE).description("이 API에서는 JSON을 지원한다."),
                                 headerWithName(HttpHeaders.ACCEPT).description("이 API에서는 HAL을 지원한다."),
                                 headerWithName(AuthConstants.AUTH_HEADER).description("JWT")
+                        ),requestFields(
+                                fieldWithPath("title").description("커뮤니티의 제목"),
+                                fieldWithPath("manager").description("커뮤니티 관리자 유저명")
                         )
                 ));
 
@@ -223,20 +227,6 @@ class CommunityControllerTest extends CommunityMethods {
     }
 
     @Test
-    @DisplayName("특정 커뮤니티의 게시글 요청 성공 (전체) With Community - 200")
-    public void findArticleWithCommunity_ALL() throws Exception {
-        AccountForm accountForm = createAccountForm();
-        Account account = saveAccount(accountForm);
-        CommunityForm communityForm = createCommunityForm(account.getUsername());
-        Community community = communityService.createCommunity(communityForm, account);
-        this.createArticleWithCommunity(community, account);
-
-        this.mockMvc.perform(get("/community/{id}", community.getId()))
-                .andDo(print())
-                .andExpect(status().isOk());
-    }
-
-    @Test
     @DisplayName("특정 커뮤니티의 게시글 요청 성공 (전체) - 200")
     public void findArticle_ALL() throws Exception {
         AccountForm accountForm = createAccountForm();
@@ -253,8 +243,9 @@ class CommunityControllerTest extends CommunityMethods {
                                 linkWithRel("first").description("첫 페이지"),
                                 linkWithRel("next").description("다음 페이지"),
                                 linkWithRel("last").description("마지막 페이지"),
-                                linkWithRel("self").description("Account Profile")
-//                                linkWithRel("DOCS").description("REST API DOCS")
+                                linkWithRel("self").description("커뮤니티 게시판"),
+                                linkWithRel("create Article In Community").description("커뮤니티 내 게시글 작성"),
+                                linkWithRel("DOCS").description("REST API DOCS")
                         ),
                         responseFields(beneathPath("page"),
                                 fieldWithPath("size").description("한 페이지의 최대 갯수"),
@@ -271,6 +262,7 @@ class CommunityControllerTest extends CommunityMethods {
                                 fieldWithPath("createTime").description("게시글이 생성된 시간"),
                                 fieldWithPath("updateTime").description("게시글이 수정된 시간"),
                                 fieldWithPath("comments").description("게시글의 댓글들"),
+                                fieldWithPath("report").description("게시글의 신고 횟수"),
                                 fieldWithPath("accountId").description("게시글을 가지고 있는 유저의 Id"),
                                 fieldWithPath("userName").description("게시글을 가지고 있는 유저의 이름"),
                                 fieldWithPath("userEmail").description("게시글을 가지고 있는 유저의 이메일"),
@@ -298,8 +290,9 @@ class CommunityControllerTest extends CommunityMethods {
                                 linkWithRel("first").description("첫 페이지"),
                                 linkWithRel("next").description("다음 페이지"),
                                 linkWithRel("last").description("마지막 페이지"),
-                                linkWithRel("self").description("Account Profile")
-//                                linkWithRel("DOCS").description("REST API DOCS")
+                                linkWithRel("self").description("커뮤니티 게시판"),
+                                linkWithRel("create Article In Community").description("커뮤니티 내 게시글 작성"),
+                                linkWithRel("DOCS").description("REST API DOCS")
                         ),
                         requestHeaders(
                                 headerWithName(HttpHeaders.CONTENT_TYPE).description("1000 - HUMOR, 2000 - CHAT, 3000 - QUESTION 타입의 게시글을 리턴한다. Application/JSON Type")
@@ -398,11 +391,15 @@ class CommunityControllerTest extends CommunityMethods {
                 .andExpect(status().isOk())
                 .andDo(document("update-Community",
                         links(
-                            linkWithRel("Community Site").description("move Community")
+                                linkWithRel("Community Site").description("생성한 커뮤니티로 이동"),
+                                linkWithRel("DOCS").description("REST API DOCS")
                         ),
                         requestHeaders(
                                 headerWithName(HttpHeaders.CONTENT_TYPE).description("이 API에서는 JSON을 지원한다."),
                                 headerWithName(AuthConstants.AUTH_HEADER).description("JWT")
+                        ), requestFields(
+                                fieldWithPath("title").description("커뮤니티의 제목"),
+                                fieldWithPath("manager").description("커뮤니티 관리자 유저명")
                         )
                 ));
 
