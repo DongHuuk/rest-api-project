@@ -73,10 +73,12 @@ class AccountControllerTest extends AccountMethods{
     public void createAccount_201() throws Exception {
         AccountForm accountForm = createAccountForm();
         accountForm.setUsername("TestUser");
+        String str = "{\"username\":\"TestUser\",\"email\":\"test@testT.com\",\"password\":\"1234567890\",\"checkingPassword\":\"1234567890\"}";
+
         this.mockMvc.perform(post("/accounts")
-                .contentType(MediaType.APPLICATION_JSON)
-                .accept(MediaTypes.HAL_JSON)
-                .content(objectMapper.writeValueAsString(accountForm)))
+                .contentType(MediaType.TEXT_PLAIN_VALUE + ";charset=UTF-8")
+//                .accept(MediaTypes.HAL_JSON)
+                .content(str))
                 .andDo(print())
                 .andExpect(status().isCreated())
                 .andDo(document("create-Account",

@@ -56,5 +56,4 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
         auth.authenticationProvider(this.customAuthenticationProvider);
     }
 
-
 }

@@ -16,7 +16,7 @@ public class JwtTokenInterceptor implements HandlerInterceptor {
         String header = request.getHeader(AuthConstants.AUTH_HEADER);
         String method = request.getMethod();
         String path = request.getPathInfo();
-        String[] split = path.split("/");
+        String[] split;
 
         if (header != null) {
 //            String token = TokenUtils.getTokenFromHeader(header);
@@ -24,6 +24,14 @@ public class JwtTokenInterceptor implements HandlerInterceptor {
                 return true;
             }
         }
+
+        if (path != null) {
+            split = path.split("/");
+        }else{
+            path = request.getServletPath();
+            split = path.split("/");
+        }
+
 
         if (method.equalsIgnoreCase("get") && path.contains("/community/")
                 && split.length == 3) {
