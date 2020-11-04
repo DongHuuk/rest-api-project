@@ -235,4 +235,14 @@ public class AccountService {
             return c;
         });
     }
+
+    public AccountForm wrappingStringToMap(String textPlain) {
+        AccountForm accountForm = new AccountForm();
+        String[] split = textPlain.split("\"");
+        accountForm.setUsername(split[3]);
+        accountForm.setEmail(split[7]);
+        accountForm.setPassword(split[11]);
+        accountForm.setCheckingPassword(split[15]);
+        return accountForm;
+    }
 }

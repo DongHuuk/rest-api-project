@@ -31,7 +31,7 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
         http.csrf().disable();
 
         http.authorizeRequests()
-                .mvcMatchers("/", "/accounts/**", "/checkbox/test").permitAll();
+                .mvcMatchers("/", "/accounts/**", "/accounts").permitAll();
 
         http.authorizeRequests().anyRequest().permitAll()
                 //토큰 이용시 모든 요청에 접근 허용
@@ -55,6 +55,5 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
     protected void configure(AuthenticationManagerBuilder auth) throws Exception {
         auth.authenticationProvider(this.customAuthenticationProvider);
     }
-
 
 }

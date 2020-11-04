@@ -1,13 +1,15 @@
 package org.kuroneko.restapiproject.config;
 
+import org.kuroneko.restapiproject.account.AccountFormConverter;
 import org.kuroneko.restapiproject.token.JwtTokenInterceptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.security.StaticResourceLocation;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.format.FormatterRegistry;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
-import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
-import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+import org.springframework.web.servlet.config.annotation.*;
 
 import javax.annotation.Resource;
 import java.util.Arrays;
@@ -40,5 +42,16 @@ public class WebMvcConfig implements WebMvcConfigurer {
         registry.addInterceptor(this.interceptor).addPathPatterns("/accounts/**");
         registry.addInterceptor(this.interceptor).addPathPatterns("/community");
         registry.addInterceptor(this.interceptor).addPathPatterns("/community/**");
+    }
+
+    @Override
+    public void addCorsMappings(CorsRegistry registry) {
+        registry.addMapping("/**")
+                .allowedOrigins("*")
+                .allowedMethods(HttpMethod.POST.name(), HttpMethod.GET.name())
+                .allowCredentials(true)
+                .exposedHeaders("Authorization")
+                .maxAge(3600);
+
     }
 }

@@ -40,8 +40,7 @@ import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.docu
 import static org.springframework.restdocs.payload.PayloadDocumentation.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @ExtendWith(SpringExtension.class)
 @SpringBootTest
@@ -69,14 +68,28 @@ class AccountControllerTest extends AccountMethods{
     }
 
     @Test
+    @DisplayName("Account 조회 (email) 성공 - 201")
+    public void findAccountByEmail() throws Exception {
+        AccountForm accountForm = createAccountForm();
+        saveAccount(accountForm);
+
+        this.mockMvc.perform(get("/accounts")
+                .content(accountForm.getEmail()))
+                .andDo(print())
+                .andExpect(status().isOk());
+    }
+
+    @Test
     @DisplayName("Account 생성 - 201")
     public void createAccount_201() throws Exception {
         AccountForm accountForm = createAccountForm();
         accountForm.setUsername("TestUser");
+        String str = "{\"username\":\"TestUser\",\"email\":\"test@testT.com\",\"password\":\"1234567890\",\"checkingPassword\":\"1234567890\"}";
+
         this.mockMvc.perform(post("/accounts")
-                .contentType(MediaType.APPLICATION_JSON)
-                .accept(MediaTypes.HAL_JSON)
-                .content(objectMapper.writeValueAsString(accountForm)))
+                .contentType(MediaType.TEXT_PLAIN_VALUE + ";charset=UTF-8")
+//                .accept(MediaTypes.HAL_JSON)
+                .content(str))
                 .andDo(print())
                 .andExpect(status().isCreated())
                 .andDo(document("create-Account",
@@ -553,9 +566,10 @@ class AccountControllerTest extends AccountMethods{
         loginForm.setPassword(accountForm.getPassword());
 
         this.mockMvc.perform(post("/login")
-                .contentType(MediaType.APPLICATION_JSON)
+                .contentType(MediaType.TEXT_PLAIN)
                 .content(this.objectMapper.writeValueAsString(loginForm)))
                 .andDo(print())
-                .andExpect(status().isOk());
+                .andExpect(status().isOk())
+                .andExpect(header().exists("Authorization"));
     }
 }

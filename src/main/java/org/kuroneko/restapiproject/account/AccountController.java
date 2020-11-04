@@ -24,22 +24,25 @@ import org.springframework.data.web.PageableDefault;
 import org.springframework.data.web.PagedResourcesAssembler;
 import org.springframework.hateoas.EntityModel;
 import org.springframework.hateoas.Link;
+import org.springframework.hateoas.MediaTypes;
 import org.springframework.hateoas.PagedModel;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.Errors;
 import org.springframework.web.bind.WebDataBinder;
 import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
+import java.util.Map;
 import java.util.Optional;
 
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
 
 @Slf4j
 @RestController
-@RequestMapping(value = "/accounts", produces = "application/hal+json;charset=UTF-8")
+@RequestMapping(value = "/accounts")
 public class AccountController extends StatusMethod{
     //TODO 매핑 객체 미완성으로 인해 link는 self만 추가하였음. 메서드가 완성 되었다면 추가적으로 입력해야 할
     //TODO Response로 JWT를 생성해서 Header에 추가해서 넘겨줘야 하는가에 대해 front 작업 하면서 확인할 것
@@ -57,10 +60,10 @@ public class AccountController extends StatusMethod{
     @Value("${host}")
     private static String HOST;
 
-    @InitBinder("accountForm")
-    public void checkingAccountForm(WebDataBinder webDataBinder){
-        webDataBinder.addValidators(accountValidation);
-    }
+//    @InitBinder("accountForm")
+//    public void checkingAccountForm(WebDataBinder webDataBinder){
+//        webDataBinder.addValidators(accountValidation);
+//    }
     @InitBinder("accountPasswordForm")
     public void checkingAccountPasswordForm(WebDataBinder webDataBinder){
         webDataBinder.addValidators(accountPasswordValidation);
@@ -103,9 +106,25 @@ public class AccountController extends StatusMethod{
         return accountResource;
     }
 
-    @PostMapping
-    public ResponseEntity createAccount(@RequestBody @Valid AccountForm accountForm, Errors errors){
+    //TODO 이 컨트롤러 테스트 코드 작성할 것
+    @GetMapping
+    public ResponseEntity findAccountByEmail(@RequestParam("email") String email) {
+        Optional<Account> byEmail = this.accountRepository.findByEmail(email);
+
+        if (this.checkId(byEmail)) return this.returnNotFound();
+
+        Account newAccount = byEmail.get();
+        AccountResource accountResource = this.createAccountResource(newAccount, newAccount.getId());
+        accountResource.add(this.getDOSCURL("/docs/index.html#resources-account-get"));
+
+        return new ResponseEntity(accountResource, HttpStatus.OK);
+    }
+
+    @PostMapping(produces = "application/HAL-JSON")
+    public ResponseEntity createAccount(@RequestBody String textPlain, Errors errors){
         if (this.checkErrors(errors)) return returnBadRequestWithErrors(errors);
+
+        AccountForm accountForm = this.accountService.wrappingStringToMap(textPlain);
 
         errors = accountService.checkAccountEmailAndUsername(accountForm, errors);
 
@@ -115,8 +134,11 @@ public class AccountController extends StatusMethod{
 
         AccountResource accountResource = this.createAccountResource(newAccount.getId());
         accountResource.add(this.getDOSCURL("/docs/index.html#resources-account-create"));
+        HttpHeaders httpHeaders = new HttpHeaders();
+        httpHeaders.setContentType(MediaTypes.HAL_JSON);
 
-        return new ResponseEntity(accountResource, HttpStatus.CREATED);
+
+        return new ResponseEntity(accountResource, httpHeaders, HttpStatus.CREATED);
     }
 
     @GetMapping("/{id}")
