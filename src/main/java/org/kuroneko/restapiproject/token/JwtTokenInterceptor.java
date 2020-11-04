@@ -49,6 +49,9 @@ public class JwtTokenInterceptor implements HandlerInterceptor {
         }
         else if (path.equals("/accounts") && (method.equalsIgnoreCase("post") || method.equalsIgnoreCase("get"))) {
             return true;
+        } else if (method.equalsIgnoreCase("options")) {
+            log.info("request method options is true");
+            return true;
         }
 
         response.sendRedirect("/error/unauthorized");

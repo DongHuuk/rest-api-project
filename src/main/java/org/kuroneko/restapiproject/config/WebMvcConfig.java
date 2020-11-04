@@ -44,14 +44,13 @@ public class WebMvcConfig implements WebMvcConfigurer {
         registry.addInterceptor(this.interceptor).addPathPatterns("/community/**");
     }
 
-    @Override
-    public void addCorsMappings(CorsRegistry registry) {
-        registry.addMapping("/**")
-                .allowedOrigins("*")
-                .allowedMethods(HttpMethod.POST.name(), HttpMethod.GET.name())
-                .allowCredentials(true)
-                .exposedHeaders("Authorization")
-                .maxAge(3600);
-
-    }
+//    @Override
+//    public void addCorsMappings(CorsRegistry registry) {
+//        registry.addMapping("/**")
+//                .allowedOrigins("*")
+//                .allowedMethods("GET", "POST", "PUT", "DELETE")
+//                .exposedHeaders("Authorization")
+//                .maxAge(3600);
+//
+//    }
 }

@@ -29,7 +29,7 @@ public class CustomLoginSuccessHandler extends SavedRequestAwareAuthenticationSu
         String token = TokenUtils.generateJwtToken(this.accountVORepository.findByEmail(accountVO.getEmail())
                 .orElseThrow(() -> new UsernameNotFoundException(accountVO.getEmail())));
 
-        response.addHeader("Access-Control-Allow-Origin", "*");
+//        response.addHeader("Access-Control-Allow-Origin", "*");
         response.addHeader(AuthConstants.AUTH_HEADER, AuthConstants.TOKEN_TYPE + " " + token);
     }
 }
