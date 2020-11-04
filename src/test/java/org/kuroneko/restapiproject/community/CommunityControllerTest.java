@@ -393,7 +393,7 @@ class CommunityControllerTest extends CommunityMethods {
                 .andExpect(status().isBadRequest());
     }
 
-    //TODO 여기부터
+    //TODO 여기부
     @Test
     @DisplayName("특정 커뮤니티 수정 - 200")
     @WithAccount(EMAIL)
@@ -412,6 +412,7 @@ class CommunityControllerTest extends CommunityMethods {
         Account account = saveAccount(accountForm);
         account.setAuthority(UserAuthority.MASTER);
         communityForm.setManager(account.getUsername());
+        
 
         String token = createToken(currentAccount);
 
