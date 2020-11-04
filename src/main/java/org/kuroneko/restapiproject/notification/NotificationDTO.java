@@ -1,10 +1,12 @@
 package org.kuroneko.restapiproject.notification;
 
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 
 import java.time.LocalDateTime;
 
 @Data
+@EqualsAndHashCode(callSuper=false)
 public class NotificationDTO {
 
     private Long id;

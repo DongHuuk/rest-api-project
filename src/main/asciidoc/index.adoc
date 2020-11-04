@@ -42,16 +42,19 @@
 | 상태 코드 | 용례
 
 | `200 OK`
-| 요청을 성공적으로 처리함
+| 요청을 성공적으로 처리한다.
 
 | `201 Created`
-| 새 리소스를 성공적으로 생성함. 응답의 `Location` 헤더에 해당 리소스의 URI가 담겨있다.
+| 새 리소스를 성공적으로 생성함. 응답의 Body의 link로 다음 동작을 유추할 수 있다.
 
 | `400 Bad Request`
-| 잘못된 요청을 보낸 경우. 응답 본문에 더 오류에 대한 정보가 담겨있다.
+| URL 요청에서의 잘못된 요청, 혹은 Form 값의 부재 등의 이유일 경우 처리, Form 값의 부재인 경우 Error 메시지가 첨부 되지만 URL의 잘못된 요청인 경우 첨부되지 않는다.
+
+| `403 ForBidden`
+| Request 요청 시 로그인이 되어 있지 않은 경우 접근 권한 부족의 에러로써의 의미로 처리한다.
 
 | `404 Not Found`
-| 요청한 리소스가 없음.
+| 요청한 리소스를 찾을 수 없다.
 |===
 
 [[overview-errors]]
@@ -59,7 +62,7 @@
 
 에러 응답이 발생했을 때, 본문에 해당 문제를 기술한 JSON 객체가 담겨있다. 에러 객체는 다음의 구조를 따른다.
 
-operation::create-Account-Errors[snippets='http-request']
+operation::create-Account-Errors[snippets='curl-request']
 
 예를 들어, 잘못된 요청으로 이벤트를 만들려고 했을 때 다음과 같은 `400 Bad Request` 응답을 받는다.
 
@@ -75,122 +78,202 @@ operation::create-Account-Errors[snippets='http-response']
 [[resources]]
 = 리소스
 
+모든 요청은 Application/JSON 타입을 받으며, 응답은 HAL_JSON 타입의 응답을 한다.
+또한 접근 권한에 따라 로그인 여부를 확인하는데, 이 때 https://jwt.io/[JWT] 방식을 사용한다.
+
 [[resources-account]]
 == Account
 
 Account 생성, 삭제, 조회, 수정 작업을 제공한다.
-
-[[resources-account-create]]
-=== Create Account
-
-`POST` 요청을 이용하여 Form 값을 전달하면 Account를 생성이 된다.
-
-operation::create-Account[snippets='http-request,http-response,links']
 
 [[resources-account-get]]
 === Read Account
 
 `GET` 요청을 이용하면 해당하는 Account의 값을 받아올 수 있다.
 
-operation::get-Account[snippets='curl-request,http-response,links']
+operation::get-Account[snippets='curl-request,http-response,response-fields,links']
+
+[[resources-account-create]]
+=== Create Account
+
+`POST` 요청을 이용하여 Form 값을 전달하면 Account를 생성이 된다.
+
+operation::create-Account[snippets='curl-request,request-fields,http-response,links']
 
 [[resources-account-update]]
 === Update Account
 
 `PUT` 요청을 이용하여 Form 값을 전달하면 그 값으로 수정이 된다.
 
-operation::update-Account[snippets='http-request,http-response,links']
+operation::update-Account[snippets='curl-request,request-fields,http-response,links']
 
 [[resources-account-delete]]
 === Delete Account
 
 `DELETE` 요청을 이용하여 Account를 삭제할 수 있다.
 
-operation::delete-Account[snippets='http-request,http-response']
+operation::delete-Account[snippets='curl-request,request-fields,http-response,response-headers']
 
 [[resources-Account-article]]
 == Account's Article
 
 특정 Account의 Article 생성, 삭제, 조회 수정 작업을 제공한다.
 
-[[resources-Account-article-create]]
-=== Create Article
-
-`POST` 요청을 이용하여 Form 값을 전달하면 Article를 생성이 된다.
-
 [[resources-Account-article-get]]
 === Read Article
 
 `GET` 요청을 이용하면 해당하는 Article의 값을 받아올 수 있다.
 
-operation::get-Account-Article[snippets='curl-request,http-response,links']
-
-[[resources-Account-article-update]]
-=== Update Article
-
-`PUT` 요청을 이용하여 Form 값을 전달하면 그 값으로 수정이 된다.
+operation::get-Account-Article[snippets='curl-request,http-response,response-fields-beneath-_embedded.articleDTOList,response-fields-beneath-page,links']
 
 [[resources-Account-article-delete]]
 === Delete Article
 
 `DELETE` 요청을 이용하여 Article을 삭제할 수 있다.
 
-operation::delete-Account-Article[snippets='curl-request,http-response']
+operation::delete-Account-Article[snippets='curl-request,request-headers,http-response,response-headers']
 
 [[resources-Account-comments]]
 == Account's Comments
 
 특정 Account의 Comments 생성, 삭제, 조회 수정 작업을 제공한다.
 
-[[resources-Account-comments-create]]
-=== Create Comments
-
-`POST` 요청을 이용하여 Form 값을 전달하면 Comments를 생성이 된다.
-
 [[resources-Account-comments-get]]
 === Read Comments
 
 `GET` 요청을 이용하면 해당하는 Comments의 값을 받아올 수 있다.
 
-operation::get-Account-Comments[snippets='curl-request,http-response,links']
-
-[[resources-Account-comments-update]]
-=== Update Comments
-
-`PUT` 요청을 이용하여 Form 값을 전달하면 그 값으로 수정이 된다.
+operation::get-Account-Comments[snippets='curl-request,http-response,response-fields-beneath-_embedded.commentsDTOList,response-fields-beneath-page,links']
 
 [[resources-Account-comments-delete]]
 === Delete Comments
 
 `DELETE` 요청을 이용하여 Comments을 삭제할 수 있다.
 
-operation::delete-Account-Comments[snippets='curl-request,http-response']
+operation::delete-Account-Comments[snippets='curl-request,request-headers,http-response,response-headers']
 
 [[resources-Account-notification]]
 == Account's Notification
 
 특정 Account의 Comments 생성, 삭제, 조회 수정 작업을 제공한다.
 
-[[resources-Account-notification-create]]
-=== Create Notification
-
-`POST` 요청을 이용하여 Form 값을 전달하면 Notification를 생성이 된다.
-
 [[resources-Account-notification-get]]
 === Read Notification
 
 `GET` 요청을 이용하면 해당하는 Notification의 값을 받아올 수 있다.
 
-operation::get-Account-Notification[snippets='curl-request,http-response,links']
-
-[[resources-Account-notification-update]]
-=== Update Notification
-
-`PUT` 요청을 이용하여 Form 값을 전달하면 그 값으로 수정이 된다.
+operation::get-Account-Notification[snippets='curl-request,http-response,response-fields-beneath-_embedded.notificationDTOList,response-fields-beneath-page,links']
 
 [[resources-Account-notification-delete]]
 === Delete Notification
 
 `DELETE` 요청을 이용하여 Notification을 삭제할 수 있다.
 
-operation::delete-Account-Notification[snippets='curl-request,http-response']
+operation::delete-Account-Notification[snippets='curl-request,request-headers,http-response,response-headers']
+
+[[resources-Community]]
+== Community
+
+Community 생성, 삭제, 조회, 수정 작업을 제공한다.
+
+[[resources-Community-get]]
+=== Read Community
+
+`GET` 요청을 이용하면 해당하는 Community의 게시판을 보여주며 이에 속해있는 Article들을 보여준다.
+
+operation::get-Community-Article[snippets='curl-request,http-response,response-fields-beneath-_embedded.articleDTOList,response-fields-beneath-page,links']
+
+[[resources-Community-get-WithType]]
+=== Read CommunityWithType
+
+게시글의 Type별로 받아보고 싶다면 이와 같이 사용한다.
+
+operation::get-Community-ArticleWithType[snippets='curl-request,request-headers,http-response,links']
+
+[[resources-Community-create]]
+=== Create Community
+
+`POST` 요청을 이용하여 Form 값을 전달하면 Community가 생성이 된다. 이 기능은 권한을 가지고 있는 자만 사용이 가능하다.
+
+operation::create-Community[snippets='curl-request,request-fields,http-response,links']
+
+[[resources-Community-update]]
+=== Update Community
+
+`PUT` 요청을 이용하여 Form 값을 전달하면 그 값으로 수정이 된다.
+
+operation::update-Account[snippets='curl-request,request-fields,http-response,links']
+
+[[resources-Community-delete]]
+=== Delete Community
+
+`DELETE` 요청을 이용하여 Community를 삭제할 수 있다.
+
+operation::delete-Account[snippets='curl-request,http-response,response-headers']
+
+[[resources-Community-Article]]
+== Community' Article
+
+Community안의 게시글을 생성, 삭제, 조회, 수정 작업을 제공한다.
+
+[[resources-Community-Article-get]]
+=== Read Community' Article
+
+`GET` 요청을 이용하면 해당하는 Community의 게시판을 보여주며 이에 속해있는 Article들과 Comments들을 보여준다.
+
+operation::get-Community-Article[snippets='curl-request,http-response,response-fields-beneath-_embedded.articleDTOList,links']
+
+[[resources-Community-Article-create]]
+=== Create Community's Article
+
+`POST` 요청을 이용하여 Form 값을 전달하면 Article이 생성이 된다.
+
+operation::create-Community-Article[snippets='curl-request,request-fields,http-response,links']
+
+[[resources-Community-Article-updatePage]]
+=== Read Community's Article Update Page
+
+`GET` 요청을 이용하여 수정을 원하는 Article의 정보를 획득할 수 있다.
+
+operation::get-Community-Article-modify[snippets='curl-request,http-response,response-fields,links']
+
+[[resources-Community-Article-update]]
+=== Update Community's Article
+
+`PUT` 요청을 이용하여 Form 값을 전달하면 그 값으로 수정이 된다.
+
+operation::update-Community-Article[snippets='curl-request,request-fields,http-response,links']
+
+[[resources-Community-Article-delete]]
+=== Delete Community
+
+`DELETE` 요청을 이용하여 게시글을 삭제할 수 있다.
+
+operation::delete-Community-Article[snippets='curl-request,http-response,response-headers']
+
+//
+[[resources-Article-Comments]]
+== Article's Comments
+
+Article의 Comments를 생성, 삭제, 조회, 수정 작업을 제공한다.
+
+[[resources-Article-Comments-create]]
+=== Create Article's Comments
+
+`POST` 요청을 이용하여 Form 값을 전달하면 Comments가 생성이 된다.
+
+operation::create-Article-Comments[snippets='curl-request,request-fields,http-response,links']
+
+[[resources-Article-Comments-update]]
+=== Update Article's Comments
+
+`PUT` 요청을 이용하여 Form 값을 전달하면 그 값으로 수정이 된다.
+
+operation::update-Article-Comments[snippets='curl-request,request-fields,http-response,links']
+
+[[resources-Article-Comments-delete]]
+=== Delete Article's Comments
+
+`DELETE` 요청을 이용하여 게시글을 삭제할 수 있다.
+
+operation::delete-Community-Article[snippets='curl-request,http-response,response-headers']

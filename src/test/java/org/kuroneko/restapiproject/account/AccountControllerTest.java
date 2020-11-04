@@ -81,19 +81,15 @@ class AccountControllerTest extends AccountMethods{
                 .andExpect(status().isCreated())
                 .andDo(document("create-Account",
                     links(
-                            linkWithRel("Account Profile").description("Account's Profile"),
-                            linkWithRel("get Articles").description("Account's find Articles"),
-                            linkWithRel("get Comments").description("Account's find Comments"),
-                            linkWithRel("get Notification").description("Account's find Notification"),
+                            linkWithRel("Account Profile").description("계정의 프로필"),
+                            linkWithRel("get Articles").description("계정이 작성한 게시글"),
+                            linkWithRel("get Comments").description("계정이 작성한 댓글"),
+                            linkWithRel("get Notification").description("계정의 알림"),
                             linkWithRel("DOCS").description("REST API DOCS")
                     ),
-                    requestHeaders(
-                            headerWithName(HttpHeaders.CONTENT_TYPE).description("이 API에서는 JSON을 지원한다."),
-                            headerWithName(HttpHeaders.ACCEPT).description("이 API에서는 HAL을 지원한다.")
-                    ),
                     requestFields(
-                            fieldWithPath("username").description("생성할 계정의 닉네임"),
-                            fieldWithPath("email").description("생성할 계정의 아이디(로그인시 사용), 특수문자는 허용하지 않는다."),
+                            fieldWithPath("username").description("생성할 계정의 닉네임 특수문자는 허용하지 않는다."),
+                            fieldWithPath("email").description("생성할 계정의 아이디(로그인시 사용)"),
                             fieldWithPath("password").description("생성할 계정의 비밀번호 8-12자, 문자 규칙은 없다."),
                             fieldWithPath("checkingPassword").description("생성할 계정의 비밀번호를 확인 할 비밀번호.")
                     )
@@ -199,19 +195,14 @@ class AccountControllerTest extends AccountMethods{
                 .andExpect(status().isOk())
                 .andDo(document("get-Account",
                         links(
-                                linkWithRel("self").description("Account Profile"),
-                                linkWithRel("Account Profile").description("Account Profile"),
-                                linkWithRel("get Articles").description("Account's get Articles"),
-                                linkWithRel("get Comments").description("Account's get Comments"),
-                                linkWithRel("get Notification").description("Account's get Notification"),
+                                linkWithRel("self").description("계정의 프로필"),
+                                linkWithRel("get Articles").description("계정이 작성한 게시글"),
+                                linkWithRel("get Comments").description("계정이 작성한 댓글"),
+                                linkWithRel("get Notification").description("계정의 알림"),
                                 linkWithRel("DOCS").description("REST API DOCS")
                         ),
                         requestHeaders(
-                                headerWithName(HttpHeaders.ACCEPT).description("이 API에서는 HAL을 지원한다."),
                                 headerWithName(AuthConstants.AUTH_HEADER).description("JWT")
-                        ),
-                        responseHeaders(
-                                headerWithName(HttpHeaders.CONTENT_TYPE).description("이 API는 hal+json을 지원한다.")
                         ),
                         relaxedResponseFields(
                                 fieldWithPath("id").description("계정을 구분할 수 있는 ID 값"),
@@ -289,15 +280,13 @@ class AccountControllerTest extends AccountMethods{
                 .andExpect(status().isCreated())
                 .andDo(document("update-Account",
                         links(
-                                linkWithRel("Account Profile").description("자신의 개인 설정 페이지"),
-                                linkWithRel("get Articles").description("자신이 작성한 게시글 열람 페이지"),
-                                linkWithRel("get Comments").description("자신이 작성한 댓글 열람 페이지"),
-                                linkWithRel("get Notification").description("자신의 알림들 페이지"),
+                                linkWithRel("Account Profile").description("계정의 프로필"),
+                                linkWithRel("get Articles").description("계정이 작성한 게시글"),
+                                linkWithRel("get Comments").description("계정이 작성한 댓글"),
+                                linkWithRel("get Notification").description("계정의 알림"),
                                 linkWithRel("DOCS").description("REST API DOCS")
                         ),
                         requestHeaders(
-                                headerWithName(HttpHeaders.CONTENT_TYPE).description("이 API는 json 타입의 요청을 받는다"),
-                                headerWithName(HttpHeaders.ACCEPT).description("이 API의 응답은 hal+json타입을 지원한다."),
                                 headerWithName(AuthConstants.AUTH_HEADER).description("JWT")
                         ),
                         requestFields(
@@ -443,7 +432,6 @@ class AccountControllerTest extends AccountMethods{
                 .andExpect(status().isNoContent())
                 .andDo(document("delete-Account",
                         requestHeaders(
-                                headerWithName(HttpHeaders.CONTENT_TYPE).description("이 API에서는 JSON을 지원한다."),
                                 headerWithName(AuthConstants.AUTH_HEADER).description("JWT")
                         ),
                         requestFields(
@@ -451,7 +439,7 @@ class AccountControllerTest extends AccountMethods{
                                 fieldWithPath("checkingPassword").description("생성할 계정의 비밀번호를 확인 할 비밀번호.")
                         ),
                         responseHeaders(
-                                headerWithName(HttpHeaders.LOCATION).description("home page URL")
+                                headerWithName(HttpHeaders.LOCATION).description("Redirect URL")
                         )
                 ));
 

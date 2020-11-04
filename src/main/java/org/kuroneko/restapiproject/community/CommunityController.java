@@ -4,16 +4,16 @@ import lombok.extern.slf4j.Slf4j;
 import org.kuroneko.restapiproject.account.AccountController;
 import org.kuroneko.restapiproject.account.AccountRepository;
 import org.kuroneko.restapiproject.account.StatusMethod;
-import org.kuroneko.restapiproject.token.AccountVO;
-import org.kuroneko.restapiproject.token.CurrentAccount;
 import org.kuroneko.restapiproject.account.domain.Account;
 import org.kuroneko.restapiproject.account.domain.UserAuthority;
+import org.kuroneko.restapiproject.article.ArticleDTOResource;
 import org.kuroneko.restapiproject.article.ArticleRepository;
-import org.kuroneko.restapiproject.article.ArticleResource;
+import org.kuroneko.restapiproject.article.ArticleService;
 import org.kuroneko.restapiproject.article.domain.Article;
 import org.kuroneko.restapiproject.article.domain.ArticleDTO;
 import org.kuroneko.restapiproject.article.domain.ArticleForm;
 import org.kuroneko.restapiproject.article.domain.ArticleThema;
+import org.kuroneko.restapiproject.comments.CommentsDTOResource;
 import org.kuroneko.restapiproject.comments.CommentsRepository;
 import org.kuroneko.restapiproject.comments.CommentsService;
 import org.kuroneko.restapiproject.comments.domain.CommentForm;
@@ -21,7 +21,8 @@ import org.kuroneko.restapiproject.comments.domain.Comments;
 import org.kuroneko.restapiproject.community.domain.Community;
 import org.kuroneko.restapiproject.community.domain.CommunityForm;
 import org.kuroneko.restapiproject.community.validation.ArticleValidator;
-import org.kuroneko.restapiproject.errors.ErrorsResource;
+import org.kuroneko.restapiproject.token.AccountVO;
+import org.kuroneko.restapiproject.token.CurrentAccount;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -57,13 +58,16 @@ public class CommunityController extends StatusMethod {
     @Autowired private ArticleRepository articleRepository;
     @Autowired private CommentsRepository commentsRepository;
     @Autowired private CommentsService commentsService;
+    @Autowired private ArticleService articleService;
 
-    private ResponseEntity findArticleWithCommunityWithThema(Community community, ArticleThema articleThema, Pageable pageable,
-                                                             Link link, PagedResourcesAssembler<ArticleDTO> assembler) {
+    private ResponseEntity findArticleWithCommunityWithType(Community community, ArticleThema articleThema, Pageable pageable,
+                                                            Link link, PagedResourcesAssembler<ArticleDTO> assembler) {
         Page<Article> articles = this.articleRepository.findByCommunityAndDivisionWithPageable(community, articleThema, pageable);
         Page<ArticleDTO> newArticles = this.communityService.wrappingByArticle(articles);
         PagedModel<EntityModel<ArticleDTO>> resultPage = assembler.toModel(newArticles, link);
-
+        resultPage.add(linkTo(CommunityController.class)
+                .slash("/" + community.getId() + "/article").withRel("create Article In Community"));
+        resultPage.add(AccountController.getDOSCURL("/docs/index.html#resources-Community-get-WithType"));
         return new ResponseEntity(resultPage, HttpStatus.OK);
     }
 
@@ -93,8 +97,9 @@ public class CommunityController extends StatusMethod {
 
         Community community = this.communityService.createCommunity(communityForm, byUsername.get());
         CommunityResource resource = new CommunityResource();
-        resource.add(linkTo(CommunityController.class).slash("/" + community.getId()).withRel("move Community"));
-        //TODO Wrtie DOCS Links
+        resource.add(linkTo(CommunityController.class).slash("/" + community.getId()).withRel("Community Site"));
+        resource.add(AccountController.getDOSCURL("/docs/index.html#resources-Community-create"));
+
         return new ResponseEntity(resource, HttpStatus.CREATED);
     }
 
@@ -113,16 +118,18 @@ public class CommunityController extends StatusMethod {
             Page<Article> articles = this.articleRepository.findByCommunityWithPageable(community, pageable);
             Page<ArticleDTO> newArticles = this.communityService.wrappingByArticle(articles);
             PagedModel<EntityModel<ArticleDTO>> resultPage = assembler.toModel(newArticles, selfLink);
-
+            resultPage.add(linkTo(CommunityController.class)
+                    .slash("/" + id + "/article").withRel("create Article In Community"));
+            resultPage.add(AccountController.getDOSCURL("/docs/index.html#resources-Community-get"));
             return new ResponseEntity(resultPage, HttpStatus.OK);
         }
 
         if (cate == 1000) {
-            return findArticleWithCommunityWithThema(community, ArticleThema.HUMOR, pageable, selfLink, assembler);
+            return findArticleWithCommunityWithType(community, ArticleThema.HUMOR, pageable, selfLink, assembler);
         } else if (cate == 2000) {
-            return findArticleWithCommunityWithThema(community, ArticleThema.CHAT, pageable, selfLink, assembler);
+            return findArticleWithCommunityWithType(community, ArticleThema.CHAT, pageable, selfLink, assembler);
         } else if (cate == 3000) {
-            return findArticleWithCommunityWithThema(community, ArticleThema.QUESTION, pageable, selfLink, assembler);
+            return findArticleWithCommunityWithType(community, ArticleThema.QUESTION, pageable, selfLink, assembler);
         }else{
             return this.returnBadRequest();
         }
@@ -148,10 +155,12 @@ public class CommunityController extends StatusMethod {
 
         this.communityService.updateCommunity(community, communityForm, accountByUsername.get());
 
-        CommunityResource communityResource = new CommunityResource();
-        communityResource.add(linkTo(CommunityController.class).slash("/CommunityId").withRel("Community Site"));
+        CommunityResource resource = new CommunityResource();
+        resource.add(linkTo(CommunityController.class)
+                .slash("/" + community.getId()).withRel("Community Site"));
+        resource.add(AccountController.getDOSCURL("/docs/index.html#resources-Community-update"));
 
-        return new ResponseEntity(communityResource, HttpStatus.OK);
+        return new ResponseEntity(resource, HttpStatus.OK);
     }
 
 
@@ -165,7 +174,7 @@ public class CommunityController extends StatusMethod {
 
         this.communityService.deleteCommunity(communityById.get());
         HttpHeaders httpHeaders = new HttpHeaders();
-        httpHeaders.setLocation(linkTo(CommunityController.class).withRel("root").toUri());
+        httpHeaders.setLocation(linkTo(CommunityController.class).withRel("Home Page").toUri());
 
         return this.returnNOCONTENT(httpHeaders);
     }
@@ -183,10 +192,11 @@ public class CommunityController extends StatusMethod {
         Article article = this.communityService.createArticleInCommunity(articleForm, communityById.get(), account);
 
         CommunityResource resource = new CommunityResource();
-        resource.add(linkTo(AccountController.class).slash(account.getId()).withRel("Account Profile"));
-        resource.add(linkTo(CommunityController.class).slash(id).withRel("get Community"));
+        resource.add(linkTo(AccountController.class).slash(account.getId()).withRel("self"));
+        resource.add(linkTo(CommunityController.class).slash(id).withRel("Community Site"));
         resource.add(linkTo(CommunityController.class).slash(id + "/article/" + article.getId())
                 .withRel("get Article By Community"));
+        resource.add(AccountController.getDOSCURL("/docs/index.html#resources-Community-Article-create"));
 
         return new ResponseEntity(resource, HttpStatus.CREATED);
     }
@@ -202,9 +212,10 @@ public class CommunityController extends StatusMethod {
         Article article = articleRepositoryById.get();
         if (!article.getCommunity().equals(communityRepositoryById.get())) return this.returnBadRequest();
 
-        ArticleResource resource = new ArticleResource(article);
-        resource.add(WebMvcLinkBuilder.linkTo(CommunityController.class).slash(article.getCommunity().getId()
-                + "/article").withRel("create Article In Community"));
+        ArticleDTO articleDTO = this.articleService.wrappingArticleByArticleDTO(article);
+        ArticleDTOResource resource = new ArticleDTOResource(articleDTO);
+        resource.add(linkTo(CommunityController.class).slash(communityId).withRel("Community Site"));
+        resource.add(AccountController.getDOSCURL("/docs/index.html#resources-Community-Article-get"));
 
         return new ResponseEntity(resource, HttpStatus.OK);
     }
@@ -250,9 +261,13 @@ public class CommunityController extends StatusMethod {
             return this.returnBadRequest();
         }
 
-        ArticleResource resource = new ArticleResource(article);
-        resource.add(WebMvcLinkBuilder.linkTo(CommunityController.class).slash(article.getCommunity().getId()
-                + "/article").withRel("create Article In Community"));
+        ArticleDTO articleDTO = this.articleService.wrappingArticleByArticleDTO(article);
+        ArticleDTOResource resource = new ArticleDTOResource(articleDTO);
+        resource.add(linkTo(AccountController.class).slash(article.getAccount().getId()).withRel("self"));
+        resource.add(linkTo(CommunityController.class).slash(communityId).withRel("Community Site"));
+        resource.add(linkTo(CommunityController.class).slash(communityId + "/article/" + article.getId())
+                .withRel("get Article By Community"));
+        resource.add(AccountController.getDOSCURL("/docs/index.html#resources-Community-updatePage"));
 
         return new ResponseEntity(resource, HttpStatus.OK);
     }
@@ -277,13 +292,13 @@ public class CommunityController extends StatusMethod {
 
         Article newArticle = this.communityService.updateArticleInCommunity(articleForm, community, article);
 
-        ArticleResource resource = new ArticleResource();
-        resource.add(WebMvcLinkBuilder.linkTo(CommunityController.class)
-                .slash(article.getCommunity().getId() + "/article/" + newArticle.getId())
-                .withRel("show Article In Community"));
-        resource.add(WebMvcLinkBuilder.linkTo(CommunityController.class)
-                .slash(article.getCommunity().getId() + "/article")
-                .withRel("create Article In Community"));
+        ArticleDTO articleDTO = this.articleService.wrappingArticleByArticleDTO(newArticle);
+        ArticleDTOResource resource = new ArticleDTOResource();
+        resource.add(linkTo(AccountController.class).slash(article.getAccount().getId()).withRel("self"));
+        resource.add(linkTo(CommunityController.class).slash(communityId).withRel("Community Site"));
+        resource.add(linkTo(CommunityController.class).slash(communityId + "/article/" + article.getId())
+                .withRel("get Article By Community"));
+        resource.add(AccountController.getDOSCURL("/docs/index.html#resources-Community-update"));
 
         return new ResponseEntity(resource, HttpStatus.OK);
     }
@@ -304,9 +319,16 @@ public class CommunityController extends StatusMethod {
         Community community = communityRepositoryById.get();
         if (!article.getCommunity().equals(community)) return this.returnBadRequest();
 
-        this.commentsService.createComments(commentForm, this.accountRepository.findByEmail(accountVO.getEmail()).get(), article);
+        Comments comments = this.commentsService.createComments(commentForm, this.accountRepository.findByEmail(accountVO.getEmail()).get(), article);
+//        CommentsDTO commentsDTO = this.commentsService.wrappingComments(comments, article);
+        CommentsDTOResource resource = new CommentsDTOResource();
+        resource.add(linkTo(AccountController.class).slash(article.getAccount().getId()).withRel("self"));
+        resource.add(linkTo(CommunityController.class).slash(communityId).withRel("Community Site"));
+        resource.add(linkTo(CommunityController.class).slash("/" + communityId + "/article/" + articleId)
+                .withRel("get Article By Community"));
+        resource.add(AccountController.getDOSCURL("/docs/index.html#resources-Article-Comments-create"));
 
-        return new ResponseEntity(HttpStatus.CREATED);
+        return new ResponseEntity(resource, HttpStatus.CREATED);
     }
 
     @PutMapping("/{id}/article/{articleId}/comments/{commentsId}")
@@ -329,8 +351,14 @@ public class CommunityController extends StatusMethod {
         if (!article.getCommunity().equals(community)) return this.returnBadRequest();
 
         this.commentsService.updateComments(commentForm, commentsRepositoryById.get());
+        CommentsDTOResource resource = new CommentsDTOResource();
+        resource.add(linkTo(AccountController.class).slash(article.getAccount().getId()).withRel("self"));
+        resource.add(linkTo(CommunityController.class).slash(communityId).withRel("Community Site"));
+        resource.add(linkTo(CommunityController.class).slash("/" + communityId + "/article/" + articleId)
+                .withRel("get Article By Community"));
+        resource.add(AccountController.getDOSCURL("/docs/index.html#resources-Article-Comments-update"));
 
-        return new ResponseEntity(HttpStatus.OK);
+        return new ResponseEntity(resource, HttpStatus.OK);
     }
 
     @DeleteMapping("/{id}/article/{articleId}/comments/{commentsId}")

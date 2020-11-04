@@ -55,7 +55,7 @@ public class AccountController extends StatusMethod{
     private AccountRepository accountRepository;
 
     @Value("${host}")
-    private String host;
+    private static String HOST;
 
     @InitBinder("accountForm")
     public void checkingAccountForm(WebDataBinder webDataBinder){
@@ -82,13 +82,12 @@ public class AccountController extends StatusMethod{
         return linkTo(AccountController.class).slash(id + "/notification").withRel("get Notification").withType("JSON");
     }
 
-    private Link getDOSCURL(String url){
-        return Link.of("http://" + host + url).withRel("DOCS").withType("JSON");
+    public static Link getDOSCURL(String url){
+        return Link.of("http://" + HOST + url).withRel("DOCS").withType("JSON");
     }
 
     private AccountResource createAccountResource(Account account, Long id){
         AccountResource accountResource = new AccountResource(account);
-        accountResource.add(this.getAccountProfile(id));
         accountResource.add(this.getAccountArticles(id));
         accountResource.add(this.getAccountComments(id));
         accountResource.add(this.getAccountNotification(id));
@@ -212,7 +211,6 @@ public class AccountController extends StatusMethod{
 
         Account account = accountWithArticleById.get();
         if (!this.checkEmail(account.getEmail(), accountVO.getEmail())) return this.returnBadRequest();
-
         try {
             accountService.findArticlesAndDelete(account, checked);
         } catch (NotFoundException e) {
@@ -322,4 +320,5 @@ public class AccountController extends StatusMethod{
 
         return new ResponseEntity(httpHeaders, HttpStatus.NO_CONTENT);
     }
+
 }

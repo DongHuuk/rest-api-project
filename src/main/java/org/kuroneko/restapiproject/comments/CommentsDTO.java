@@ -1,12 +1,14 @@
 package org.kuroneko.restapiproject.comments;
 
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import org.kuroneko.restapiproject.article.domain.ArticleDTO;
 import org.springframework.hateoas.RepresentationModel;
 
 import java.time.LocalDateTime;
 
 @Data
+@EqualsAndHashCode(callSuper=false)
 public class CommentsDTO extends RepresentationModel<ArticleDTO> {
 
     private Long number;
@@ -18,6 +20,8 @@ public class CommentsDTO extends RepresentationModel<ArticleDTO> {
     private int agree;
 
     private int disagree;
+
+    private int report;
 
     private int originNo; //checking sub comments
 

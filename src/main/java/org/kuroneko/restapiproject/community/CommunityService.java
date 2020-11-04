@@ -42,6 +42,8 @@ public class CommunityService {
     }
 
     public void deleteCommunity(Community community) {
+        Account manager = community.getManager();
+        manager.getCommunities().remove(community);
         List<Article> articleList = this.articleRepository.findByCommunity(community);
         this.articleRepository.deleteInBatch(articleList);
         this.communityRepository.delete(community);

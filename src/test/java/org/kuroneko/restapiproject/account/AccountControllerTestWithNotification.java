@@ -80,7 +80,7 @@ public class AccountControllerTestWithNotification extends AccountMethods{
         ArticleForm articleForm = createArticleForm(1);
         Article article = saveArticle(account, articleForm);
 
-        for (int i = 0; i < 10; i++) {
+        for (int i = 0; i < 30; i++) {
             this.saveNotification(article, account);
         }
 
@@ -92,11 +92,14 @@ public class AccountControllerTestWithNotification extends AccountMethods{
                 .andExpect(status().isOk())
                 .andDo(document("get-Account-Notification",
                         links(
-                            linkWithRel("self").description("Account Profile"),
-                            linkWithRel("get Articles").description("Account's get Articles"),
-                            linkWithRel("get Comments").description("Account's get Comments"),
-                            linkWithRel("get Notification").description("Account's get Notification"),
-                            linkWithRel("DOCS").description("REST API DOCS")
+                                linkWithRel("first").description("첫 페이지"),
+                                linkWithRel("next").description("다음 페이지"),
+                                linkWithRel("last").description("마지막 페이지"),
+                                linkWithRel("self").description("계정의 프로필"),
+                                linkWithRel("get Articles").description("계정이 작성한 게시글"),
+                                linkWithRel("get Comments").description("계정이 작성한 댓글"),
+                                linkWithRel("get Notification").description("계정의 알림"),
+                                linkWithRel("DOCS").description("REST API DOCS")
                         ),
                         requestHeaders(
                                 headerWithName(AuthConstants.AUTH_HEADER).description("JWT")
@@ -218,9 +221,9 @@ public class AccountControllerTestWithNotification extends AccountMethods{
                 .andExpect(status().isNoContent())
                 .andDo(document("delete-Account-Notification",
                         requestHeaders(
-                                headerWithName(HttpHeaders.CONTENT_TYPE).description("Json 타입의 숫자 + ','의 값을 보낸다. ex) 1, 3, 5"),
+                                headerWithName(HttpHeaders.CONTENT_TYPE).description("AJAX로 Notification의 Number를 String 타입으로 Number  + ','의 값을 보낸다. ex) 1, 3, 5"),
                                 headerWithName(AuthConstants.AUTH_HEADER).description("JWT")
-                        ),
+                                ),
                         responseHeaders(
                                 headerWithName(HttpHeaders.LOCATION).description("Redirect URL")
                         )

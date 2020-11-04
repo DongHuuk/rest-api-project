@@ -7,6 +7,7 @@ import org.kuroneko.restapiproject.article.domain.Article;
 import org.kuroneko.restapiproject.comments.domain.CommentForm;
 import org.kuroneko.restapiproject.comments.domain.Comments;
 import org.kuroneko.restapiproject.community.domain.Community;
+import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -17,6 +18,7 @@ public class CommentsService {
     @Autowired private CommentsRepository commentsRepository;
     @Autowired private AccountRepository accountRepository;
     @Autowired private ArticleRepository articleRepository;
+    @Autowired private ModelMapper modelMapper;
 
     public Comments createComments(CommentForm commentForm, Account secAccount, Article article) {
         Account account = this.accountRepository.findById(secAccount.getId()).orElseThrow();
@@ -46,5 +48,12 @@ public class CommentsService {
         article.getComments().remove(comments);
         account.getComments().remove(comments);
         this.commentsRepository.delete(comments);
+    }
+
+    public CommentsDTO wrappingComments(Comments comments, Article article) {
+        CommentsDTO commentsDTO = this.modelMapper.map(comments, CommentsDTO.class);
+        commentsDTO.setArticleId(article.getId());
+        commentsDTO.setArticleNumber(article.getNumber());
+        return commentsDTO;
     }
 }

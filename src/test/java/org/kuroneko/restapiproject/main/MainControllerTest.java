@@ -22,23 +22,5 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest
 @AutoConfigureMockMvc
 class MainControllerTest {
-    @Autowired
-    private MockMvc mockMvc;
-    @Autowired
-    private ObjectMapper objectMapper;
-
-    @Test
-    public void login() throws Exception{
-        LoginForm loginForm = new LoginForm();
-        loginForm.setEmail("test@testT.com");
-        loginForm.setPassword("1234567890-=");
-
-        this.mockMvc.perform(get("/login")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(loginForm))
-                .with(csrf()))
-                .andDo(print())
-                .andExpect(status().isOk());
-    }
 
 }

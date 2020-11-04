@@ -4,6 +4,7 @@ import io.jsonwebtoken.*;
 import lombok.extern.log4j.Log4j2;
 import org.kuroneko.restapiproject.account.domain.Account;
 import org.kuroneko.restapiproject.account.domain.UserAuthority;
+import org.springframework.context.annotation.Profile;
 
 import javax.crypto.spec.SecretKeySpec;
 import javax.xml.bind.DatatypeConverter;
@@ -13,8 +14,10 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
+
 @Log4j2
 public class TokenUtils {
+
     private static final String securityKey = "Is_A_SecurityKeyForJwtTokenInCommunitySiteProject";
 
     public static String generateJwtToken(AccountVO accountVO) {
