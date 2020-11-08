@@ -19,6 +19,7 @@ import org.kuroneko.restapiproject.comments.CommentsService;
 import org.kuroneko.restapiproject.comments.domain.CommentForm;
 import org.kuroneko.restapiproject.comments.domain.Comments;
 import org.kuroneko.restapiproject.community.domain.Community;
+import org.kuroneko.restapiproject.community.domain.CommunityDTO;
 import org.kuroneko.restapiproject.community.domain.CommunityForm;
 import org.kuroneko.restapiproject.community.validation.ArticleValidator;
 import org.kuroneko.restapiproject.token.AccountVO;
@@ -32,7 +33,6 @@ import org.springframework.data.web.PagedResourcesAssembler;
 import org.springframework.hateoas.EntityModel;
 import org.springframework.hateoas.Link;
 import org.springframework.hateoas.PagedModel;
-import org.springframework.hateoas.server.mvc.WebMvcLinkBuilder;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -74,13 +74,6 @@ public class CommunityController extends StatusMethod {
     @InitBinder("articleForm")
     public void articleFormValidator(WebDataBinder webDataBinder) {
         webDataBinder.addValidators(this.articleValidator);
-    }
-
-    @GetMapping
-    public ResponseEntity showCommunityList(){
-        //TODO 커뮤니티들을 보여주면서 그 안에 최신순으로 10개씩 나열해줘야 함
-        //메인 화면에 커뮤니티별로 게시글을 보여줘야 하는데, qeuryDSL로 Limit을 다중으로 걸면 DB에 부담이 있을지 없을지 모르므로 일단 보류
-        return ResponseEntity.ok().build();
     }
 
     @PostMapping

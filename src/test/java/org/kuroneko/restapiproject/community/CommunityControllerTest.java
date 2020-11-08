@@ -15,6 +15,7 @@ import org.kuroneko.restapiproject.account.domain.UserAuthority;
 import org.kuroneko.restapiproject.article.ArticleRepository;
 import org.kuroneko.restapiproject.article.domain.Article;
 import org.kuroneko.restapiproject.article.domain.ArticleForm;
+import org.kuroneko.restapiproject.comments.domain.CommentForm;
 import org.kuroneko.restapiproject.community.domain.Community;
 import org.kuroneko.restapiproject.community.domain.CommunityForm;
 import org.kuroneko.restapiproject.config.WithAccount;
@@ -74,13 +75,6 @@ class CommunityControllerTest extends CommunityMethods {
         this.communityRepository.deleteAll();
         this.accountRepository.deleteAll();
         this.accountVORepository.deleteAll();
-    }
-
-    //TODO Controller 작성 후 Test code 작성해야 할 것
-    @Test
-    public void indexCommunityTest() throws Exception {
-        this.mockMvc.perform(get("/community"))
-                .andExpect(status().isOk());
     }
 
     @Test

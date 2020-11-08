@@ -32,5 +32,7 @@ public interface ArticleRepository extends JpaRepository<Article, Long>, Queryds
 
     List<Article> findByCommunity(Community community);
 
+    List<Article> findTop8ByCommunityOrderByCreateTimeDesc(Community community);
+
     Page<Article> findByCommunity(Community community, Pageable pageable);
 }

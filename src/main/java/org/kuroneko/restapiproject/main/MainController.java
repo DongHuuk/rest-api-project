@@ -4,6 +4,9 @@ import org.apache.coyote.Response;
 import org.kuroneko.restapiproject.account.AccountController;
 import org.kuroneko.restapiproject.account.AccountService;
 import org.kuroneko.restapiproject.account.domain.LoginForm;
+import org.kuroneko.restapiproject.community.CommunityDTOResource;
+import org.kuroneko.restapiproject.community.CommunityService;
+import org.kuroneko.restapiproject.community.domain.CommunityDTO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.hateoas.RepresentationModel;
 import org.springframework.http.HttpStatus;
@@ -23,6 +26,8 @@ public class MainController {
 
     @Autowired
     private AccountService accountService;
+    @Autowired
+    private CommunityService communityService;
 
     public static RepresentationModel getIndexLink(){
         var index = new RepresentationModel();
@@ -38,19 +43,17 @@ public class MainController {
      */
 
     //TODO Principal를 현재 Accouhent Domain으로 바로 받아올 수 있게 설정 및 인증 서버 OAuth2 설정해야 함.
-    @GetMapping("/")
-    public String index_get(Principal principal) {
-        return "index_Get";
+    @GetMapping(produces = "application/hal+json;charset=UTF-8")
+    public ResponseEntity showCommunityList(){
+        CommunityDTO communityDTO = this.communityService.findCommunityAndArticles();
+        CommunityDTOResource resource = new CommunityDTOResource(communityDTO);
+
+        return new ResponseEntity(resource, HttpStatus.OK);
     }
 
     @PostMapping("/")
     public String index_post(Principal principal) {
         return "index_Post";
-    }
-
-    @GetMapping("/re")
-    public RedirectView reIndex(){
-        return new RedirectView("/");
     }
 
     @PostMapping(value = "/login", produces = "application/json;charset=UTF-8")

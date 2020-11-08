@@ -3,14 +3,10 @@ package org.kuroneko.restapiproject.community;
 import org.kuroneko.restapiproject.account.AccountRepository;
 import org.kuroneko.restapiproject.account.domain.Account;
 import org.kuroneko.restapiproject.article.ArticleRepository;
-import org.kuroneko.restapiproject.article.domain.Article;
-import org.kuroneko.restapiproject.article.domain.ArticleDTO;
-import org.kuroneko.restapiproject.article.domain.ArticleForm;
-import org.kuroneko.restapiproject.article.domain.ArticleThema;
+import org.kuroneko.restapiproject.article.domain.*;
 import org.kuroneko.restapiproject.comments.CommentsRepository;
 import org.kuroneko.restapiproject.comments.domain.Comments;
-import org.kuroneko.restapiproject.community.domain.Community;
-import org.kuroneko.restapiproject.community.domain.CommunityForm;
+import org.kuroneko.restapiproject.community.domain.*;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -145,5 +141,28 @@ public class CommunityService {
         List<Comments> byArticle = this.commentsRepository.findByArticle(article);
         this.commentsRepository.deleteInBatch(byArticle);
         this.articleRepository.delete(article);
+    }
+
+    public CommunityDTO findCommunityAndArticles() {
+        List<Community> communities = this.communityRepository.findAll();
+        CommunityDTO communityDTO = new CommunityDTO();
+        communities.forEach(community -> {
+            TestDTO testDTO = new TestDTO();
+            CommunityMiniDTO communityMiniDTO = new CommunityMiniDTO();
+            communityMiniDTO.setCommunityId(community.getId());
+            communityMiniDTO.setCommunityTitle(community.getTitle());
+            List<Article> articles = this.articleRepository.findTop8ByCommunityOrderByCreateTimeDesc(community);
+            articles.forEach(article -> {
+                ArticleMiniDTO articleMiniDTO = new ArticleMiniDTO();
+                articleMiniDTO.setArticleId(article.getId());
+                articleMiniDTO.setArticleTitle(article.getTitle());
+                articleMiniDTO.setCommentsCount(article.getComments().size());
+                testDTO.getArticleMiniDTO().add(articleMiniDTO);
+            });
+            testDTO.getCommunityMiniDTO().add(communityMiniDTO);
+            communityDTO.getTestDTO().add(testDTO);
+        });
+
+        return communityDTO;
     }
 }
