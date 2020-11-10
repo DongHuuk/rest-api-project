@@ -105,6 +105,7 @@ public class CommunityService {
         return articles.map(article -> {
             ArticleDTO map = this.modelMapper.map(article, ArticleDTO.class);
             Account account = article.getAccount();
+            map.setCommunityTitle(article.getCommunity().getTitle());
             map.setAccountId(account.getId());
             map.setUserName(account.getUsername());
             map.setUserEmail(account.getEmail());
@@ -151,7 +152,7 @@ public class CommunityService {
             CommunityMiniDTO communityMiniDTO = new CommunityMiniDTO();
             communityMiniDTO.setCommunityId(community.getId());
             communityMiniDTO.setCommunityTitle(community.getTitle());
-            List<Article> articles = this.articleRepository.findTop8ByCommunityOrderByCreateTimeDesc(community);
+            List<Article> articles = this.articleRepository.findTop4ByCommunityOrderByCreateTimeDesc(community);
             articles.forEach(article -> {
                 ArticleMiniDTO articleMiniDTO = new ArticleMiniDTO();
                 articleMiniDTO.setArticleId(article.getId());

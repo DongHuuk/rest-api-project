@@ -201,6 +201,7 @@ public class AccountService {
             map.setUserName(account.getUsername());
             map.setUserEmail(account.getEmail());
             map.setAuthority(account.getAuthority() + "");
+            map.setCommunityTitle(article.getCommunity().getTitle());
             return map;
         });
     }

@@ -34,6 +34,8 @@ public class ArticleDTO extends RepresentationModel<ArticleDTO> {
 
     private int report;
 
+    private String communityTitle;
+
     private Long accountId;
 
     private String userName;

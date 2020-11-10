@@ -21,6 +21,7 @@ public class ArticleService {
         articleDTO.setUserName(article.getAccount().getUsername());
         articleDTO.setUserEmail(article.getAccount().getEmail());
         articleDTO.setAuthority(article.getAccount().getAuthority() + "");
+        articleDTO.setCommunityTitle(article.getCommunity().getTitle());
         return articleDTO;
     }
 }
