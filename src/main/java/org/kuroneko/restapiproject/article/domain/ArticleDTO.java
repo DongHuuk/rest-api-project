@@ -4,10 +4,14 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
+import org.kuroneko.restapiproject.comments.CommentsDTO;
 import org.kuroneko.restapiproject.comments.domain.Comments;
 import org.springframework.hateoas.RepresentationModel;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 @Data
@@ -30,7 +34,7 @@ public class ArticleDTO extends RepresentationModel<ArticleDTO> {
 
     private LocalDateTime updateTime;
 
-    private Set<Comments> comments;
+    private List<CommentsDTO> comments = new ArrayList<>();
 
     private int report;
 

@@ -26,6 +26,13 @@ public class CommentsDTO extends RepresentationModel<ArticleDTO> {
     private int originNo; //checking sub comments
 
     private int groupOrd; // 댓글 - 0 , 댓답글 - 1
+    
+    //TODO 답글을 요청할 컨트롤러 처리 작성 필요 추후
+    private Long commentNumber; // 댓답글의 경우 어떤 댓글에서의 답글인지
+
+    private Long accountId;
+
+    private String accountUsername;
 
     private Long articleId;
 

@@ -72,7 +72,7 @@ public class TokenUtils {
         }
     }
 
-    private static Claims getClaimsFormToken(String token) {
+    public static Claims getClaimsFormToken(String token) {
         return Jwts.parser().setSigningKey(DatatypeConverter.parseBase64Binary(securityKey))
                 .parseClaimsJws(token).getBody();
     }

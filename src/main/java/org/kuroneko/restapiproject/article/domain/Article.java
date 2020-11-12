@@ -9,7 +9,9 @@ import org.kuroneko.restapiproject.community.domain.Community;
 
 import javax.persistence.*;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 @Entity
@@ -41,7 +43,7 @@ public class Article {
 
     @OneToMany(fetch = FetchType.EAGER)
     @JsonManagedReference
-    private Set<Comments> comments = new HashSet<>();
+    private List<Comments> comments = new ArrayList<>();
 
     @ManyToOne(fetch = FetchType.EAGER)
     @JsonBackReference

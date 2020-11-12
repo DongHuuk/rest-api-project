@@ -18,6 +18,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.Resource;
@@ -60,7 +61,8 @@ public class CustomAuthenticationProvider implements AuthenticationProvider {
         UsernamePasswordAuthenticationToken newToken = new UsernamePasswordAuthenticationToken(accountVO, password,
                 Collections.singleton(new SimpleGrantedAuthority(accountVO.getAuthority().toString())));
 
-        SecurityContextHolder.getContext().setAuthentication(newToken);
+//        SecurityContextHolder.getContext().setAuthentication(newToken);
+        newToken.setDetails(authentication.getDetails());
 
         return newToken;
     }
