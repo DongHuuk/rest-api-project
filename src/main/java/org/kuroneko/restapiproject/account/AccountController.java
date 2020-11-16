@@ -3,6 +3,7 @@ package org.kuroneko.restapiproject.account;
 import javassist.NotFoundException;
 import lombok.extern.slf4j.Slf4j;
 import org.kuroneko.restapiproject.account.domain.Account;
+import org.kuroneko.restapiproject.account.domain.AccountDTO;
 import org.kuroneko.restapiproject.account.domain.AccountForm;
 import org.kuroneko.restapiproject.account.domain.AccountPasswordForm;
 import org.kuroneko.restapiproject.account.validation.AccountPasswordValidation;
@@ -109,15 +110,18 @@ public class AccountController extends StatusMethod{
     //TODO 이 컨트롤러 테스트 코드 작성할 것
     @GetMapping
     public ResponseEntity findAccountByEmail(@RequestParam("email") String email) {
-        Optional<Account> byEmail = this.accountRepository.findByEmail(email);
+        Optional<AccountDTO> byEmail = this.accountRepository.findWithAccountDTOByEmail(email);
 
         if (this.checkId(byEmail)) return this.returnNotFound();
 
-        Account newAccount = byEmail.get();
-        AccountResource accountResource = this.createAccountResource(newAccount, newAccount.getId());
-        accountResource.add(this.getDOSCURL("/docs/index.html#resources-account-get"));
+        AccountDTO accountDTO = byEmail.get();
+        AccountDTOResource resource = new AccountDTOResource(accountDTO);
+        resource.add(this.getAccountArticles(accountDTO.getId()));
+        resource.add(this.getAccountComments(accountDTO.getId()));
+        resource.add(this.getAccountNotification(accountDTO.getId()));
+        resource.add(this.getDOSCURL("/docs/index.html#resources-account-get"));
 
-        return new ResponseEntity(accountResource, HttpStatus.OK);
+        return new ResponseEntity(resource, HttpStatus.OK);
     }
 
     @PostMapping(produces = "application/HAL-JSON")

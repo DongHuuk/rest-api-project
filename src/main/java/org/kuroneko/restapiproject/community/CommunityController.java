@@ -9,17 +9,13 @@ import org.kuroneko.restapiproject.account.domain.UserAuthority;
 import org.kuroneko.restapiproject.article.ArticleDTOResource;
 import org.kuroneko.restapiproject.article.ArticleRepository;
 import org.kuroneko.restapiproject.article.ArticleService;
-import org.kuroneko.restapiproject.article.domain.Article;
-import org.kuroneko.restapiproject.article.domain.ArticleDTO;
-import org.kuroneko.restapiproject.article.domain.ArticleForm;
-import org.kuroneko.restapiproject.article.domain.ArticleThema;
+import org.kuroneko.restapiproject.article.domain.*;
 import org.kuroneko.restapiproject.comments.CommentsDTOResource;
 import org.kuroneko.restapiproject.comments.CommentsRepository;
 import org.kuroneko.restapiproject.comments.CommentsService;
 import org.kuroneko.restapiproject.comments.domain.CommentForm;
 import org.kuroneko.restapiproject.comments.domain.Comments;
 import org.kuroneko.restapiproject.community.domain.Community;
-import org.kuroneko.restapiproject.community.domain.CommunityDTO;
 import org.kuroneko.restapiproject.community.domain.CommunityForm;
 import org.kuroneko.restapiproject.community.validation.ArticleValidator;
 import org.kuroneko.restapiproject.token.AccountVO;
@@ -61,12 +57,12 @@ public class CommunityController extends StatusMethod {
     @Autowired private ArticleService articleService;
 
     private ResponseEntity findArticleWithCommunityWithType(Community community, ArticleThema articleThema, Pageable pageable,
-                                                            Link link, PagedResourcesAssembler<ArticleDTO> assembler) {
+                                                            Link link, PagedResourcesAssembler<ArticleDTOByMainPage> assembler) {
         Page<Article> articles = this.articleRepository.findByCommunityAndDivisionWithPageable(community, articleThema, pageable);
-        Page<ArticleDTO> newArticles = this.communityService.wrappingByArticle(articles);
-        PagedModel<EntityModel<ArticleDTO>> resultPage = assembler.toModel(newArticles, link);
+        Page<ArticleDTOByMainPage> newArticles = this.communityService.articleWrappingByArticleDTOByMainPage(articles);
+        PagedModel<EntityModel<ArticleDTOByMainPage>> resultPage = assembler.toModel(newArticles, link);
         resultPage.add(linkTo(CommunityController.class)
-                .slash("/" + community.getId() + "/article").withRel("create Article In Community"));
+                .slash("/" + community.getId() + "/article").withRel("create_Article_In_Community"));
         resultPage.add(AccountController.getDOSCURL("/docs/index.html#resources-Community-get-WithType"));
         return new ResponseEntity(resultPage, HttpStatus.OK);
     }
@@ -97,9 +93,9 @@ public class CommunityController extends StatusMethod {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity findArticleWithCommunity(@PathVariable Long id, @RequestBody(required = false) Integer cate,
-                                        @PageableDefault(sort = "createTime", direction = Sort.Direction.DESC) Pageable pageable,
-                                        PagedResourcesAssembler<ArticleDTO> assembler) {
+    public ResponseEntity findArticleWithCommunity(@PathVariable Long id, @RequestParam(required = false, name = "cate") Integer cate,
+                                        @PageableDefault(value = 20, sort = "createTime", direction = Sort.Direction.DESC) Pageable pageable,
+                                        PagedResourcesAssembler<ArticleDTOByMainPage> assembler) {
         Optional<Community> communityById = this.communityRepository.findById(id);
         Link selfLink = linkTo(CommunityController.class).slash(id).withRel("get Community And Articles");
 
@@ -107,12 +103,18 @@ public class CommunityController extends StatusMethod {
 
         Community community = communityById.get();
 
+        /*
+            TODO article의 comment 부분은 필요없고 count 숫자만 필요함
+            프론트에서 사용하는 값은 다음과 같다.
+            article - Number, division, title, writer(account), date, 해당 article을 호출 하기 위한 Id 값
+            comment - 해당 article에 속해있는 comment의 총 갯수
+        */
         if (cate == null || cate == 0) {
             Page<Article> articles = this.articleRepository.findByCommunityWithPageable(community, pageable);
-            Page<ArticleDTO> newArticles = this.communityService.wrappingByArticle(articles);
-            PagedModel<EntityModel<ArticleDTO>> resultPage = assembler.toModel(newArticles, selfLink);
+            Page<ArticleDTOByMainPage> newArticles = this.communityService.articleWrappingByArticleDTOByMainPage(articles);
+            PagedModel<EntityModel<ArticleDTOByMainPage>> resultPage = assembler.toModel(newArticles, selfLink);
             resultPage.add(linkTo(CommunityController.class)
-                    .slash("/" + id + "/article").withRel("create Article In Community"));
+                    .slash("/" + id + "/article").withRel("create_Article_In_Community"));
             resultPage.add(AccountController.getDOSCURL("/docs/index.html#resources-Community-get"));
             return new ResponseEntity(resultPage, HttpStatus.OK);
         }
@@ -207,7 +209,7 @@ public class CommunityController extends StatusMethod {
 
         ArticleDTO articleDTO = this.articleService.wrappingArticleByArticleDTO(article);
         ArticleDTOResource resource = new ArticleDTOResource(articleDTO);
-        resource.add(linkTo(CommunityController.class).slash(communityId).withRel("Community Site"));
+        resource.add(linkTo(CommunityController.class).slash(communityId).withRel("Community_Site"));
         resource.add(AccountController.getDOSCURL("/docs/index.html#resources-Community-Article-get"));
 
         return new ResponseEntity(resource, HttpStatus.OK);

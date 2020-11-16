@@ -107,8 +107,8 @@ public class AppInit {
         Community community1 = this.communityService.createCommunity(communityForm, account);
         communityForm.setTitle("Init Community No.2");
         Community community2 = this.communityService.createCommunity(communityForm, account);
-        this.multySaveArticleInCommunity(30, community1, account);
-        this.multySaveArticleInCommunity(30, community2, account);
+        this.multySaveArticleInCommunity(195, community1, account);
+        this.multySaveArticleInCommunity(195, community2, account);
 
         return new ResponseEntity<>( HttpStatus.CREATED);
     }

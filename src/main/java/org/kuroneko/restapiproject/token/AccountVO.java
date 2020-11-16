@@ -15,7 +15,6 @@ import java.time.LocalDateTime;
  */
 
 @Entity
-@Table(name = "USER")
 @Getter
 @NoArgsConstructor
 public class AccountVO implements Serializable {
@@ -42,7 +41,7 @@ public class AccountVO implements Serializable {
     @Column(nullable = false, length = 20, updatable = false)
     private LocalDateTime createdAt;                        // 등록 일자
 
-    @UpdateTimestamp
+//    @UpdateTimestamp
     @Column(length = 20)
     private LocalDateTime updatedAt;                        // 수정 일자
 

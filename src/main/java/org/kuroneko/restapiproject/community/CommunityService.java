@@ -101,6 +101,24 @@ public class CommunityService {
 
     }
 
+    public Page<ArticleDTOByMainPage> articleWrappingByArticleDTOByMainPage(Page<Article> articles) {
+        return articles.map(article -> {
+            ArticleDTOByMainPage articleDTOByMainPage = new ArticleDTOByMainPage();
+            articleDTOByMainPage.setId(article.getId());
+            articleDTOByMainPage.setNumber(article.getNumber());
+            articleDTOByMainPage.setDivision(article.getDivision());
+            articleDTOByMainPage.setTitle(article.getTitle());
+            Account account = article.getAccount();
+            articleDTOByMainPage.setAccountId(account.getId());
+            articleDTOByMainPage.setAccountUsername(account.getUsername());
+            articleDTOByMainPage.setCreateTime(article.getCreateTime());
+            articleDTOByMainPage.setCommentCnt(article.getComments().size());
+            articleDTOByMainPage.setCommunityName(article.getCommunity().getTitle());
+            return articleDTOByMainPage;
+        });
+    }
+
+    //TODO 중복인지 아닌지 모르겟음 최적화 작업하면서 수정
     public Page<ArticleDTO> wrappingByArticle(Page<Article> articles) {
         return articles.map(article -> {
             ArticleDTO map = this.modelMapper.map(article, ArticleDTO.class);
