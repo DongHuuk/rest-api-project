@@ -16,6 +16,8 @@ import org.springframework.stereotype.Service;
 import javax.transaction.Transactional;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 @Transactional
@@ -158,8 +160,9 @@ public class CommunityService {
         community.getArticle().remove(article);
         account.getArticle().remove(article);
         List<Comments> byArticle = this.commentsRepository.findByArticle(article);
-        this.commentsRepository.deleteInBatch(byArticle);
+        this.commentsRepository.deleteAllByIdInQuery(byArticle.stream().map(Comments::getId).collect(Collectors.toList()));
         this.articleRepository.delete(article);
+
     }
 
     public CommunityDTO findCommunityAndArticles() {

@@ -17,7 +17,6 @@ import org.kuroneko.restapiproject.comments.domain.CommentForm;
 import org.kuroneko.restapiproject.comments.domain.Comments;
 import org.kuroneko.restapiproject.community.domain.Community;
 import org.kuroneko.restapiproject.community.domain.CommunityForm;
-import org.kuroneko.restapiproject.community.validation.ArticleValidator;
 import org.kuroneko.restapiproject.token.AccountVO;
 import org.kuroneko.restapiproject.token.CurrentAccount;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -34,7 +33,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.Errors;
-import org.springframework.web.bind.WebDataBinder;
 import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
@@ -50,7 +48,6 @@ public class CommunityController extends StatusMethod {
     @Autowired private AccountRepository accountRepository;
     @Autowired private CommunityService communityService;
     @Autowired private CommunityRepository communityRepository;
-    @Autowired private ArticleValidator articleValidator;
     @Autowired private ArticleRepository articleRepository;
     @Autowired private CommentsRepository commentsRepository;
     @Autowired private CommentsService commentsService;
@@ -65,11 +62,6 @@ public class CommunityController extends StatusMethod {
                 .slash("/" + community.getId() + "/article").withRel("create_Article_In_Community"));
         resultPage.add(AccountController.getDOSCURL("/docs/index.html#resources-Community-get-WithType"));
         return new ResponseEntity(resultPage, HttpStatus.OK);
-    }
-
-    @InitBinder("articleForm")
-    public void articleFormValidator(WebDataBinder webDataBinder) {
-        webDataBinder.addValidators(this.articleValidator);
     }
 
     @PostMapping

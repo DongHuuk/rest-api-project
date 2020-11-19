@@ -1,27 +1,19 @@
 package org.kuroneko.restapiproject.article;
 
-import org.kuroneko.restapiproject.account.AccountRepository;
-import org.kuroneko.restapiproject.account.domain.Account;
 import org.kuroneko.restapiproject.article.domain.Article;
 import org.kuroneko.restapiproject.article.domain.ArticleDTO;
 import org.kuroneko.restapiproject.comments.CommentsDTO;
-import org.kuroneko.restapiproject.exception.IdNotFoundException;
-import org.kuroneko.restapiproject.token.AccountVO;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
-
-import java.time.LocalDateTime;
-import java.util.*;
 
 @Service
 public class ArticleService {
     @Autowired private ModelMapper modelMapper;
 
     public ArticleDTO wrappingArticleByArticleDTO(Article article) {
-//        ArticleDTO articleDTO = this.modelMapper.map(article, ArticleDTO.class);
         ArticleDTO articleDTO = new ArticleDTO();
+        articleDTO.setId(article.getId());
         articleDTO.setNumber(article.getNumber());
         articleDTO.setTitle(article.getTitle());
         articleDTO.setDescription(article.getDescription());

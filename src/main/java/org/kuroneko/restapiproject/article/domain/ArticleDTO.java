@@ -20,6 +20,8 @@ import java.util.Set;
 @AllArgsConstructor
 public class ArticleDTO extends RepresentationModel<ArticleDTO> {
 
+    private Long id;
+
     private Long number;
 
     private String title;

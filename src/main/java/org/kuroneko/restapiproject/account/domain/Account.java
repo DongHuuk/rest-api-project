@@ -53,7 +53,7 @@ public class Account {
     @JsonManagedReference
     private Set<Community> communities = new HashSet<>();
 
-    @OneToMany(mappedBy = "account")
+    @OneToMany(mappedBy = "account", fetch = FetchType.LAZY)
     @JsonManagedReference
     private Set<Notification> notification = new HashSet<>();
 

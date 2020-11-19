@@ -31,6 +31,7 @@ public class Article {
 
     private String title;
 
+    @Lob
     private String description;
 
     private String source;
@@ -41,7 +42,7 @@ public class Article {
     private LocalDateTime createTime;
     private LocalDateTime updateTime;
 
-    @OneToMany(fetch = FetchType.EAGER)
+    @OneToMany(mappedBy = "article", fetch = FetchType.EAGER)
     @JsonManagedReference
     private List<Comments> comments = new ArrayList<>();
 
