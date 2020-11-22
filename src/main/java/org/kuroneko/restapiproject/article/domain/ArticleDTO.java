@@ -38,6 +38,10 @@ public class ArticleDTO extends RepresentationModel<ArticleDTO> {
 
     private List<CommentsDTO> comments = new ArrayList<>();
 
+    private int agree;
+
+    private int disagree;
+
     private int report;
 
     private String communityTitle;

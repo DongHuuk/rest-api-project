@@ -43,23 +43,9 @@ public class AppInit {
     @Autowired
     private AccountService accountService;
     @Autowired
-    private AccountRepository accountRepository;
-    @Autowired
-    private AccountVORepository accountVORepository;
-    @Autowired
     private CommunityService communityService;
     @Autowired
-    private CommunityRepository communityRepository;
-    @Autowired
-    private ArticleService articleService;
-    @Autowired
-    private ArticleRepository articleRepository;
-    @Autowired
     private CommentsService commentsService;
-    @Autowired
-    private CommentsRepository commentsRepository;
-    @Autowired
-    private PasswordEncoder passwordEncoder;
     @Autowired
     private ModelMapper modelMapper;
 

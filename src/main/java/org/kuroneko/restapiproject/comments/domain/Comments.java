@@ -4,9 +4,12 @@ import com.fasterxml.jackson.annotation.JsonBackReference;
 import lombok.*;
 import org.kuroneko.restapiproject.account.domain.Account;
 import org.kuroneko.restapiproject.article.domain.Article;
+import org.kuroneko.restapiproject.token.AccountVO;
 
 import javax.persistence.*;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Getter
@@ -37,6 +40,12 @@ public class Comments {
     private boolean originNo; //checking sub comments
 
     private int groupOrd; // 댓글 - 0 , 댓답글 - 1
+
+    @ManyToMany
+    private List<AccountVO> agreeList = new ArrayList<>();
+
+    @ManyToMany
+    private List<AccountVO> disagreeList = new ArrayList<>();
 
     @ManyToOne
     @JsonBackReference

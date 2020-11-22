@@ -34,6 +34,20 @@ public class ArticleRepositoryExtensionImpl extends QuerydslRepositorySupport im
     }
 
     @Override
+    public List<Article> findTop8WithAgreeByCommunityId(Long communityId) {
+        QArticle article = QArticle.article;
+
+        QueryResults<Article> articleQueryResults = from(article).where(article.community.id.eq(communityId)
+                .and(article.agree.between(30, 999))
+                .and(article.disagree.between(0, 15)))
+                .orderBy(article.createTime.asc())
+                .limit(8)
+                .fetchResults();
+
+        return articleQueryResults.getResults();
+    }
+
+    @Override
     public Page<Article> findByCommunityWithPageable(Community iCommunity, Pageable pageable) {
         QArticle article = QArticle.article;
         QueryResults<Article> articleQueryResults = from(article)

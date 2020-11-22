@@ -7,9 +7,11 @@ import org.kuroneko.restapiproject.article.domain.Article;
 import org.kuroneko.restapiproject.comments.domain.CommentForm;
 import org.kuroneko.restapiproject.comments.domain.Comments;
 import org.kuroneko.restapiproject.community.domain.Community;
+import org.kuroneko.restapiproject.token.AccountVO;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 
@@ -55,5 +57,24 @@ public class CommentsService {
         commentsDTO.setArticleId(article.getId());
         commentsDTO.setArticleNumber(article.getNumber());
         return commentsDTO;
+    }
+
+    @Transactional
+    public void updateOpinionCommentVal(Boolean b, Comments comments) {
+        if(b) comments.setAgree(comments.getAgree() + 1);
+        else comments.setDisagree(comments.getDisagree() + 1);
+    }
+
+    @Transactional
+    public Comments updateOpinionVal(boolean tf, Comments comments, AccountVO accountVO) {
+        if(tf){
+            comments.getAgreeList().add(accountVO);
+            comments.setAgree(comments.getAgree() + 1);
+        }else{
+            comments.getDisagreeList().add(accountVO);
+            comments.setDisagree(comments.getDisagree() + 1);
+        }
+
+        return comments;
     }
 }

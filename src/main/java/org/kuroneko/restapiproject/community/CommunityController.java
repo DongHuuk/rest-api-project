@@ -6,6 +6,7 @@ import org.kuroneko.restapiproject.account.AccountRepository;
 import org.kuroneko.restapiproject.account.StatusMethod;
 import org.kuroneko.restapiproject.account.domain.Account;
 import org.kuroneko.restapiproject.account.domain.UserAuthority;
+import org.kuroneko.restapiproject.article.ArticleDTOByOpinionResource;
 import org.kuroneko.restapiproject.article.ArticleDTOResource;
 import org.kuroneko.restapiproject.article.ArticleRepository;
 import org.kuroneko.restapiproject.article.ArticleService;
@@ -18,6 +19,7 @@ import org.kuroneko.restapiproject.comments.domain.Comments;
 import org.kuroneko.restapiproject.community.domain.Community;
 import org.kuroneko.restapiproject.community.domain.CommunityForm;
 import org.kuroneko.restapiproject.token.AccountVO;
+import org.kuroneko.restapiproject.token.AccountVORepository;
 import org.kuroneko.restapiproject.token.CurrentAccount;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -36,6 +38,7 @@ import org.springframework.validation.Errors;
 import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
+import java.util.List;
 import java.util.Optional;
 
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
@@ -52,6 +55,7 @@ public class CommunityController extends StatusMethod {
     @Autowired private CommentsRepository commentsRepository;
     @Autowired private CommentsService commentsService;
     @Autowired private ArticleService articleService;
+    @Autowired private AccountVORepository accountVORepository;
 
     private ResponseEntity findArticleWithCommunityWithType(Community community, ArticleThema articleThema, Pageable pageable,
                                                             Link link, PagedResourcesAssembler<ArticleDTOByMainPage> assembler) {
@@ -84,6 +88,15 @@ public class CommunityController extends StatusMethod {
         return new ResponseEntity(resource, HttpStatus.CREATED);
     }
 
+    //TODO TestCode 작성
+    @GetMapping("/{id}/best")
+    public ResponseEntity findBestArticleWithCommunity(@PathVariable Long id) {
+        List<Article> articleList = this.articleRepository.findTop8WithAgreeByCommunityId(id);
+        List<ArticleDTOByMainPage> articleDTOByMainPage = this.communityService.articleWrappingByArticleDTOByMainPage(articleList);
+
+        return new ResponseEntity(articleDTOByMainPage, HttpStatus.OK);
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity findArticleWithCommunity(@PathVariable Long id, @RequestParam(required = false, name = "cate") Integer cate,
                                         @PageableDefault(value = 20, sort = "createTime", direction = Sort.Direction.DESC) Pageable pageable,
@@ -95,12 +108,6 @@ public class CommunityController extends StatusMethod {
 
         Community community = communityById.get();
 
-        /*
-            TODO article의 comment 부분은 필요없고 count 숫자만 필요함
-            프론트에서 사용하는 값은 다음과 같다.
-            article - Number, division, title, writer(account), date, 해당 article을 호출 하기 위한 Id 값
-            comment - 해당 article에 속해있는 comment의 총 갯수
-        */
         if (cate == null || cate == 0) {
             Page<Article> articles = this.articleRepository.findByCommunityWithPageable(community, pageable);
             Page<ArticleDTOByMainPage> newArticles = this.communityService.articleWrappingByArticleDTOByMainPage(articles);
@@ -374,6 +381,75 @@ public class CommunityController extends StatusMethod {
                 .slash("/" + commentId + "/article/" + articleId).withRel("get Article").toUri());
 
         return this.returnNOCONTENT(httpHeaders);
+    }
+
+    //TODO Test Code 작성
+    @PutMapping("/{id}/article/{articleId}/opinion")
+    public ResponseEntity opinionArticle(@CurrentAccount AccountVO accountVO, @PathVariable("id") Long communityId, @PathVariable("articleId") Long articleId,
+                                        @RequestBody String b) {
+        if (this.checkAccountVO(accountVO)) return this.returnFORBIDDEN();
+
+        boolean tf = false;
+        if (b != null && b.equalsIgnoreCase("true")) tf = true;
+        else tf = false;
+
+        AccountVO newAccountVO = this.accountVORepository.findById(accountVO.getId()).orElseThrow();
+        Optional<Community> communityRepositoryById = this.communityRepository.findById(communityId);
+        Optional<Article> articleRepositoryById = this.articleRepository.findById(articleId);
+
+        if (this.checkId(communityRepositoryById) || this.checkId(articleRepositoryById)) {
+            return this.returnNotFound();
+        }
+
+        Article article = articleRepositoryById.get();
+        Community community = communityRepositoryById.get();
+        if (!article.getCommunity().equals(community)) return this.returnBadRequest();
+
+        if(article.getAgreeList().contains(newAccountVO) || article.getDisagreeList().contains(newAccountVO)) return this.returnBadRequest();
+
+        Article newArticle = this.articleService.updateOpinionVal(tf, article, newAccountVO);
+
+        ArticleDTOByOpinionResource resource = new ArticleDTOByOpinionResource(this.articleService.wrappingArticleByArticleDTOByOpinion(newArticle));
+        resource.add(linkTo(CommunityController.class).withSelfRel());
+        //바로 적용해야 할 필요성이 있으므로 여기에서는 return 값에 Resource를 포함 시키겠다.
+        return new ResponseEntity(resource, HttpStatus.OK);
+    }
+
+    //TODO Test Code 작성
+    @PutMapping("/{id}/article/{articleId}/comments/{commentsNumber}/opinion")
+    public ResponseEntity agreeComments(@CurrentAccount AccountVO accountVO, @PathVariable("id") Long communityId, @PathVariable("articleId") Long articleId,
+                                       @PathVariable("commentsNumber") Long commentsNumber, @RequestBody String b) {
+        if (this.checkAccountVO(accountVO)) return this.returnFORBIDDEN();
+
+        boolean tf;
+        if (b != null && b.equalsIgnoreCase("true")) tf = true;
+        else tf = false;
+
+        //singleTone
+        AccountVO newAccountVO = this.accountVORepository.findById(accountVO.getId()).orElseThrow();
+
+        Optional<Community> communityRepositoryById = this.communityRepository.findById(communityId);
+        Optional<Article> articleRepositoryById = this.articleRepository.findById(articleId);
+        Optional<Comments> commentsRepositoryById = this.commentsRepository.findByNumber(commentsNumber);
+        if (this.checkId(communityRepositoryById) || this.checkId(articleRepositoryById) || this.checkId(commentsRepositoryById)) {
+            return this.returnNotFound();
+        }
+
+        Article article = articleRepositoryById.get();
+        Community community = communityRepositoryById.get();
+        Comments comments = commentsRepositoryById.get();
+
+        if (!article.getCommunity().equals(community)) return this.returnBadRequest();
+        if (!comments.getArticle().equals(article)) return this.returnBadRequest();
+        if (comments.getAgreeList().contains(newAccountVO) || comments.getDisagreeList().contains(newAccountVO)) return this.returnBadRequest();
+
+        Comments newComments = this.commentsService.updateOpinionVal(tf, comments, newAccountVO);
+
+        CommentsDTOResource resource = new CommentsDTOResource(this.commentsService.wrappingComments(newComments, article));
+        resource.add(linkTo(CommunityController.class).withSelfRel());
+
+        //바로 적용해야 할 필요성이 있으므로 여기에서는 return 값에 Resource를 포함 시키겠다.
+        return new ResponseEntity(resource, HttpStatus.OK);
     }
 
 }

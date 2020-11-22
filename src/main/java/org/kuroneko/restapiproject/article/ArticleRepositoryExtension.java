@@ -13,6 +13,8 @@ import java.util.List;
 public interface ArticleRepositoryExtension {
     List<Article> findByNumber(List<Long> list);
 
+    List<Article> findTop8WithAgreeByCommunityId(Long id);
+
     Page<Article> findByCommunityWithPageable(Community community, Pageable pageable);
 
     Page<Article> findByCommunityAndDivisionWithPageable(Community community, ArticleThema articleThema, Pageable pageable);

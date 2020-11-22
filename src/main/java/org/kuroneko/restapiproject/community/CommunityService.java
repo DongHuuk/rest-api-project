@@ -15,6 +15,7 @@ import org.springframework.stereotype.Service;
 
 import javax.transaction.Transactional;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -62,6 +63,9 @@ public class CommunityService {
         article.setCreateTime(LocalDateTime.now());
         article.setAccount(newAccount);
         article.setCommunity(community);
+        article.setAgree((int)(Math.random() * 50));
+        article.setDisagree((int) (Math.random() * 30));
+        article.setReport((int) (Math.random() * 30));
         switch (articleForm.getDivision()) {
             case 0:
                 article.setDivision(ArticleThema.HUMOR);
@@ -101,6 +105,27 @@ public class CommunityService {
             return new ResponseEntity(getArticles, HttpStatus.OK);
      */
 
+    }
+
+    public List<ArticleDTOByMainPage> articleWrappingByArticleDTOByMainPage(List<Article> articles) {
+        List<ArticleDTOByMainPage> list = new ArrayList<>();
+        articles.stream().forEach(article -> {
+            ArticleDTOByMainPage articleDTOByMainPage = new ArticleDTOByMainPage();
+            articleDTOByMainPage.setId(article.getId());
+            articleDTOByMainPage.setNumber(article.getNumber());
+            articleDTOByMainPage.setDivision(article.getDivision());
+            articleDTOByMainPage.setTitle(article.getTitle());
+            Account account = article.getAccount();
+            articleDTOByMainPage.setAccountId(account.getId());
+            articleDTOByMainPage.setAccountUsername(account.getUsername());
+            articleDTOByMainPage.setCreateTime(article.getCreateTime());
+            articleDTOByMainPage.setCommentCnt(article.getComments().size());
+            articleDTOByMainPage.setCommunityName(article.getCommunity().getTitle());
+
+            list.add(articleDTOByMainPage);
+        });
+
+        return list;
     }
 
     public Page<ArticleDTOByMainPage> articleWrappingByArticleDTOByMainPage(Page<Article> articles) {

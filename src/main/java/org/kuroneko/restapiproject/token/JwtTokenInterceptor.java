@@ -27,6 +27,12 @@ public class JwtTokenInterceptor implements HandlerInterceptor {
         String method = request.getMethod();
         String path = request.getPathInfo();
         String[] split;
+        if (path != null) {
+            split = path.split("/");
+        }else{
+            path = request.getServletPath();
+            split = path.split("/");
+        }
 
         if (header != null) {
 //            String token = TokenUtils.getTokenFromHeader(header);
@@ -44,14 +50,6 @@ public class JwtTokenInterceptor implements HandlerInterceptor {
             }
         }
 
-        if (path != null) {
-            split = path.split("/");
-        }else{
-            path = request.getServletPath();
-            split = path.split("/");
-        }
-
-
         if (method.equalsIgnoreCase("get") && path.contains("/community/")
                 && split.length == 3) {
             try {
@@ -60,13 +58,14 @@ public class JwtTokenInterceptor implements HandlerInterceptor {
             } catch (NumberFormatException e) {
                 return false;
             }
+        } else if(method.equalsIgnoreCase("get") && path.contains("/best")){
+            return true;
         } else if (method.equalsIgnoreCase("get") && path.equals("/community")) {
             return true;
         } else if(method.equalsIgnoreCase("get") && path.contains("/community") && path.contains("/article")
             && split.length == 5){
             return true;
-        }
-        else if (path.equals("/accounts") && (method.equalsIgnoreCase("post") || method.equalsIgnoreCase("get"))) {
+        } else if (path.equals("/accounts") && (method.equalsIgnoreCase("post") || method.equalsIgnoreCase("get"))) {
             return true;
         } else if (method.equalsIgnoreCase("options")) {
             log.info("request method options is true");

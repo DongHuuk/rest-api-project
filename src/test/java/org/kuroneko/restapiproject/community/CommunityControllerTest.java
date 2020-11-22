@@ -1,6 +1,7 @@
 package org.kuroneko.restapiproject.community;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.With;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
@@ -354,6 +355,23 @@ class CommunityControllerTest extends CommunityMethods {
                 .content("5000"))
                 .andDo(print())
                 .andExpect(status().isBadRequest());
+    }
+
+    //TODO 지금 DB를 dev용이랑 공유해서 이부분 test용 db 생성 후 구현
+    @Test
+    @DisplayName("특정 커뮤니티의 베스트 글 조회 - 200")
+    @WithAccount(EMAIL)
+    @Transactional
+    public void findBestArticle() throws Exception {
+        AccountForm accountForm = createAccountForm();
+        Account account = saveAccount(accountForm);
+        CommunityForm communityForm = createCommunityForm(account.getUsername());
+        Community community = communityService.createCommunity(communityForm, account);
+        this.createArticleWithCommunity(community, account);
+
+        this.mockMvc.perform(get("/community/{id}/best", community.getId()))
+                .andDo(print())
+                .andExpect(status().isOk());
     }
 
     @Test
